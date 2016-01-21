@@ -11,8 +11,8 @@ LIBS    = $(LAPACKLIB) $(FFTWLIBS)
 
 
 EXE = exec
-F90SRC = main.f90 random.f90 declaration.f90 init.f90 modPlasma.f90 timeStep.f90 assignFunctions.f90 convergence.f90 MatrixSolver.f90 constants.f90
-F90OBJ = main.o random.o declaration.o init.o modPlasma.o timeStep.o assignFunctions.o convergence.o MatrixSolver.o constants.o
+F90SRC = main.f90 random.f90 declaration.f90 init.f90 modPlasma.f90 timeStep.f90 assignFunctions.f90 convergence.f90 MatrixSolver.f90 constants.f90 testmodule.f90
+F90OBJ = main.o random.o declaration.o init.o modPlasma.o timeStep.o assignFunctions.o convergence.o MatrixSolver.o constants.o testmodule.o
 
 ### Targets
 all: $(EXE)
@@ -34,7 +34,8 @@ declaration.o : modPlasma.o
 init.o: declaration.o random.o MatrixSolver.o
 assignFunctions.o : declaration.o
 timeStep.o : assignFunctions.o MatrixSolver.o
-main.o : init.o timeStep.o
+testmodule.o : init.o timeStep.o
+main.o : testmodule.o
 #convergence.o : init.o timeStep.o
 #main.o: convergence.o
 

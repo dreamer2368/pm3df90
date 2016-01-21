@@ -1,6 +1,6 @@
 module MatrixSolver
 
-!	use modPlasma										!machine precision mp should be assigned
+	use constants										!machine precision mp should be assigned
 
 	implicit none
 
