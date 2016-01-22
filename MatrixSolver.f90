@@ -8,22 +8,21 @@ module MatrixSolver
 
 contains
 
-	subroutine FFTPoissonGrad(y,rhs,W)
+	subroutine FFTEfield(y,rhs,W)
 		real(mp), intent(in) :: rhs(:,:,:)
-		complex(mp), intent(in) :: W(size(rhs,1)/2+1,size(rhs,2),size(rhs,3))
+		complex(mp), intent(in) :: W(size(rhs,1),size(rhs,2),size(rhs,3))
 		real(mp), intent(out) :: y(size(rhs,1),size(rhs,2),size(rhs,3),3)			!!Gradient of the solution
 		integer*8 :: plan
-		complex(mp) :: rhsFFT(size(rhs,1)/2+1,size(rhs,2),size(rhs,3))
-		complex(mp) :: xFFT(size(rhs,1)/2+1,size(rhs,2),size(rhs,3))				!!Spectral solution of Poisson equation
-		complex(mp) :: yFFT(size(rhs,1)/2+1,size(rhs,2),size(rhs,3),3)
+		complex(mp), dimension(size(rhs,1),size(rhs,2),size(rhs,3)) :: rhsb, rhsFFT, xFFT, yb, yFFT
 		integer :: L,M,N, i,wi
 
 		L = size(rhs,1)
 		M = size(rhs,2)
 		N = size(rhs,3)
 
-		call dfftw_plan_dft_r2c_3d(plan,L,M,N,rhs,rhsFFT,FFTW_ESTIMATE)
-		call dfftw_execute_dft_r2c(plan,rhs,rhsFFT)
+		rhsb = rhs
+		call dfftw_plan_dft_3d(plan,L,M,N,rhsb,rhsFFT,FFTW_FORWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,rhsb,rhsFFT)
 		call dfftw_destroy_plan(plan)
 
 		xFFT = rhsFFT/W
@@ -36,8 +35,13 @@ contains
 			else
 				wi = - ( N-i )
 			end if
-			yFFT(:,:,i+1,3) = xFFT(:,:,i+1)*2.0_mp*pi*eye*wi
+			yFFT(:,:,i+1) = xFFT(:,:,i+1)*2.0_mp*pi*eye*wi
 		end do
+
+		call dfftw_plan_dft_3d(plan,L,M,N,yFFT,yb,FFTW_BACKWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,yFFT,yb)
+		call dfftw_destroy_plan(plan)
+		y(:,:,:,3) = REALPART(yb)*1.0_mp/L/M/N
 
 		!gradient in y direction
 		do i=0,M-1
@@ -46,28 +50,28 @@ contains
 			else
 				wi = - ( M-i )
 			end if
-			yFFT(:,i+1,:,2) = xFFT(:,i+1,:)*2.0_mp*pi*eye*wi
+			yFFT(:,i+1,:) = xFFT(:,i+1,:)*2.0_mp*pi*eye*wi
 		end do
+
+		call dfftw_plan_dft_3d(plan,L,M,N,yFFT,yb,FFTW_BACKWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,yFFT,yb)
+		call dfftw_destroy_plan(plan)
+		y(:,:,:,2) = REALPART(yb)*1.0_mp/L/M/N
 
 		!gradient in x direction
-		do i=0,L/2
-			wi = i
-			yFFT(i+1,:,:,1) = xFFT(i+1,:,:)*2.0_mp*pi*eye*wi
+		do i=0,L-1
+			if( i.le.L/2 ) then
+				wi = i
+			else
+				wi = - ( L-i )
+			end if
+			yFFT(i+1,:,:) = xFFT(i+1,:,:)*2.0_mp*pi*eye*wi
 		end do
 
-		call dfftw_plan_dft_c2r_3d(plan,L,M,N,yFFT(:,:,:,1),y(:,:,:,1),FFTW_ESTIMATE)
-		call dfftw_execute_dft_c2r(plan,yFFT(:,:,:,1),y(:,:,:,1))
+		call dfftw_plan_dft_3d(plan,L,M,N,yFFT,yb,FFTW_BACKWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,yFFT,yb)
 		call dfftw_destroy_plan(plan)
-
-		call dfftw_plan_dft_c2r_3d(plan,L,M,N,yFFT(:,:,:,2),y(:,:,:,2),FFTW_ESTIMATE)
-		call dfftw_execute_dft_c2r(plan,yFFT(:,:,:,2),y(:,:,:,2))
-		call dfftw_destroy_plan(plan)
-
-		call dfftw_plan_dft_c2r_3d(plan,L,M,N,yFFT(:,:,:,3),y(:,:,:,3),FFTW_ESTIMATE)
-		call dfftw_execute_dft_c2r(plan,yFFT(:,:,:,3),y(:,:,:,3))
-		call dfftw_destroy_plan(plan)
-
-		y = y*1.0_mp/L/M/N
+		y(:,:,:,1) = REALPART(yb)*1.0_mp/L/M/N
 	end subroutine
 
 	function Gradient(x,dx,Ng) result(y)						!Derivative with periodic BC
@@ -100,13 +104,10 @@ contains
 	subroutine FFTPoisson_setup(N,dx,W)
 		integer, intent(in) :: N(3)
 		real(mp), intent(in) :: dx(3)
-		complex(mp), intent(out) :: W(N(1)/2+1,N(2),N(3))
+		complex(mp), intent(out) :: W(N(1),N(2),N(3))
 		integer :: i,j,k, wi,wj,wk
 		complex(mp) :: wx,wy,wz
 
-!		wx = exp(2.0_mp*pi*eye/N(1))
-!		wy = exp(2.0_mp*pi*eye/N(2))
-!		wz = exp(2.0_mp*pi*eye/N(3))
 		wx = 2.0_mp*pi*eye
 		wy = 2.0_mp*pi*eye
 		wz = 2.0_mp*pi*eye
@@ -122,10 +123,7 @@ contains
 				else
 					wj = - ( N(2)-j )
 				end if
-				do i=0,N(1)/2
-!					W(i+1,j+1,k+1) = ( wx**i - 2.0_mp + wx**(-i) )/dx(1)/dx(1)	&
-!								+ ( wy**j - 2.0_mp + wy**(-j) )/dx(2)/dx(2)	&
-!								+ ( wz**k - 2.0_mp + wz**(-k) )/dx(3)/dx(3)
+				do i=0,N(1)
 					if( i.le.N(1)/2 ) then
 						wi = i
 					else
@@ -140,29 +138,29 @@ contains
 
 	subroutine FFTPoisson(x,rhs,W)
 		real(mp), intent(in) :: rhs(:,:,:)
-		complex(mp), intent(in) :: W(size(rhs,1)/2+1,size(rhs,2),size(rhs,3))
+		complex(mp), intent(in) :: W(size(rhs,1),size(rhs,2),size(rhs,3))
 		real(mp), intent(out) :: x(size(rhs,1),size(rhs,2),size(rhs,3))
 		integer*8 :: plan
-		complex(mp) :: rhsFFT(size(rhs,1)/2+1,size(rhs,2),size(rhs,3))
-		complex(mp) :: xFFT(size(rhs,1)/2+1,size(rhs,2),size(rhs,3))
+		complex(mp), dimension(size(rhs,1),size(rhs,2),size(rhs,3)) :: rhsFFT, xFFT, rhsb, xb
 		integer :: L,M,N
 
 		L = size(rhs,1)
 		M = size(rhs,2)
 		N = size(rhs,3)
 
-		call dfftw_plan_dft_r2c_3d(plan,L,M,N,rhs,rhsFFT,FFTW_ESTIMATE)
-		call dfftw_execute_dft_r2c(plan,rhs,rhsFFT)
+		rhsb = rhs
+		call dfftw_plan_dft_3d(plan,L,M,N,rhsb,rhsFFT,FFTW_FORWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,rhsb,rhsFFT)
 		call dfftw_destroy_plan(plan)
 
 		xFFT = rhsFFT/W
 		xFFT(1,1,1) = (0.0_mp, 0.0_mp)
 
-		call dfftw_plan_dft_c2r_3d(plan,L,M,N,xFFT,x,FFTW_ESTIMATE)
-		call dfftw_execute_dft_c2r(plan,xFFT,x)
+		call dfftw_plan_dft_3d(plan,L,M,N,xFFT,xb,FFTW_BACKWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,xFFT,xb)
 		call dfftw_destroy_plan(plan)
 
-		x = x*1.0_mp/L/M/N
+		x = REALPART(xb)*1.0_mp/L/M/N
 	end subroutine
 
 end module
