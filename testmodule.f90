@@ -8,19 +8,19 @@ module testmodule
 contains
 
 	subroutine test_FFTPoisson_adj(N,Nf)
-		integer, intent(in) :: N(3)							!!grid number
-		integer, intent(in) :: Nf							!!number of fourier modes
+		integer, intent(in) :: N(3)										!!grid number
+		integer, intent(in) :: Nf										!!number of fourier modes
 
-		real(mp) :: dx(3)									!!grid size
+		real(mp) :: dx(3)												!!grid size
 		real(mp) :: xg(N(1)), yg(N(2)), zg(N(3))
 		real(mp) :: eps0 = 1.0_mp
-		real(mp) :: L(3) = (/ 1.0_mp, 1.0_mp, 1.0_mp /)		!cubic size
-		real(mp), dimension(N(1),N(2),N(3)) :: rho, rhs, weight
+		real(mp) :: L(3) = (/ 1.0_mp, 1.0_mp, 1.0_mp /)					!cubic size
+		real(mp), dimension(N(1),N(2),N(3)) :: rho, rhs, weight, rhos
 		real(mp), dimension(N(1),N(2),N(3),3) :: E,Es
 		real(mp) :: rhok(N(1),N(2),N(3),Nf)
 
-		real(mp) :: A(Nf)									!coefficients of fourier modes
-		real(mp) :: J0,J1
+		real(mp) :: A(Nf), dA(Nf)										!coefficients of fourier modes
+		real(mp) :: J0,J1,dJdA(Nf)
 
 		complex(mp) :: W(N(1),N(2),N(3))
 		integer :: i,j,k,m
@@ -55,12 +55,35 @@ contains
 		call FFTEfield(E,rhs,W)
 
 		J0 = SUM( PRODUCT(dx)*weight*(E(:,:,:,1)**2 + E(:,:,:,2)**2 + E(:,:,:,3)**2) )
-		print *, J0
+		print *, 'J0 = ', J0
 
 		do i=1,3
 			Es(:,:,:,i) = -2.0_mp*PRODUCT(dx)*weight*E(:,:,:,i)
 		end do
 
+		call FFTAdj(Es,rhos,W)
+		rhos = rhos/eps0
+
+		do i=1,Nf
+			dJdA(i) = SUM( rhos*rhok(:,:,:,i) )
+		end do
+		print *, 'dJdA = ', dJdA
+
+		dA = 0.0_mp
+		dA(1) = (0.1_mp)**9
+		A = A+dA
+		rho = 0.0_mp
+		do i=1,Nf
+			rho = rho + A(i)*rhok(:,:,:,i)
+		end do
+
+		rhs = -rho/eps0
+
+		call FFTEfield(E,rhs,W)
+
+		J1 = SUM( PRODUCT(dx)*weight*(E(:,:,:,1)**2 + E(:,:,:,2)**2 + E(:,:,:,3)**2) )
+		print *, 'J1 = ', J1
+		print *, 'actual dJdA = ', (J1-J0)/dA(1)
 	end subroutine
 
 	subroutine verify_assignment(this)

@@ -8,6 +8,73 @@ module MatrixSolver
 
 contains
 
+	subroutine FFTAdj(Es,rhos,W)
+		real(mp), intent(in) :: Es(:,:,:,:)
+		complex(mp), intent(in) :: W(size(Es,1),size(Es,2),size(Es,3))
+		real(mp), intent(out) :: rhos(size(Es,1),size(Es,2),size(Es,3))
+		integer*8 :: plan
+		complex(mp), dimension(size(Es,1),size(Es,2),size(Es,3)) :: Esb, EsFFT, phisFFT, rhsFFT, rhosb
+		integer :: L,M,N, i,wi
+
+		if( size(Es,4).ne.3 ) then
+			print *, 'FAULT!! :: Adjoint Electric field has more than 3 dimension'
+			stop
+		end if
+
+		L = size(Es,1)
+		M = size(Es,2)
+		N = size(Es,3)
+
+		phisFFT = 0.0_mp
+		Esb = Es(:,:,:,1)
+		call dfftw_plan_dft_3d(plan,L,M,N,Esb,EsFFT,FFTW_BACKWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,Esb,EsFFT)
+		call dfftw_destroy_plan(plan)
+		do i=0,L-1
+			if( i.le.L/2 ) then
+				wi = i
+			else
+				wi = - ( L-i )
+			end if
+			phisFFT(i+1,:,:) = EsFFT(i+1,:,:)*2.0_mp*pi*eye*wi
+		end do
+
+		Esb = Es(:,:,:,2)
+		call dfftw_plan_dft_3d(plan,L,M,N,Esb,EsFFT,FFTW_BACKWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,Esb,EsFFT)
+		call dfftw_destroy_plan(plan)
+		do i=0,M-1
+			if( i.le.M/2 ) then
+				wi = i
+			else
+				wi = - ( M-i )
+			end if
+			phisFFT(:,i+1,:) = EsFFT(:,i+1,:)*2.0_mp*pi*eye*wi
+		end do
+
+		Esb = Es(:,:,:,3)
+		call dfftw_plan_dft_3d(plan,L,M,N,Esb,EsFFT,FFTW_BACKWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,Esb,EsFFT)
+		call dfftw_destroy_plan(plan)
+		do i=0,N-1
+			if( i.le.N/2 ) then
+				wi = i
+			else
+				wi = - ( N-i )
+			end if
+			phisFFT(:,:,i+1) = EsFFT(:,:,i+1)*2.0_mp*pi*eye*wi
+		end do
+
+		phisFFT = phisFFT*1.0_mp/L/M/N
+
+		rhsFFT = phisFFT/W
+		rhsFFT(1,1,1) = (0.0_mp, 0.0_mp)
+		call dfftw_plan_dft_3d(plan,L,M,N,rhsFFT,rhosb,FFTW_FORWARD,FFTW_ESTIMATE)
+		call dfftw_execute_dft(plan,rhsFFT,rhosb)
+		call dfftw_destroy_plan(plan)
+		rhos = REALPART(rhosb)
+	end subroutine
+
 	subroutine FFTEfield(y,rhs,W)
 		real(mp), intent(in) :: rhs(:,:,:)
 		complex(mp), intent(in) :: W(size(rhs,1),size(rhs,2),size(rhs,3))
