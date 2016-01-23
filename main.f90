@@ -16,7 +16,7 @@ program main
 !	call forwardsweep(langmuir)
 !	call destroyPlasma(langmuir)
 
-	call test_FFTPoisson_adj(Ng,1)
+	call test_FFTPoisson_adj((/ 32,32,32 /),2)
 
 	call cpu_time(finish)
 

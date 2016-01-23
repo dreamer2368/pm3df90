@@ -17,7 +17,7 @@ contains
 		integer :: L,M,N, i,wi
 
 		if( size(Es,4).ne.3 ) then
-			print *, 'FAULT!! :: Adjoint Electric field has more than 3 dimension'
+			print *, 'FAULT!! :: Adjoint Electric field is not 3 dimension'
 			stop
 		end if
 
@@ -36,7 +36,7 @@ contains
 			else
 				wi = - ( L-i )
 			end if
-			phisFFT(i+1,:,:) = EsFFT(i+1,:,:)*2.0_mp*pi*eye*wi
+			phisFFT(i+1,:,:) = phisFFT(i+1,:,:) + EsFFT(i+1,:,:)*2.0_mp*pi*eye*wi
 		end do
 
 		Esb = Es(:,:,:,2)
@@ -49,7 +49,7 @@ contains
 			else
 				wi = - ( M-i )
 			end if
-			phisFFT(:,i+1,:) = EsFFT(:,i+1,:)*2.0_mp*pi*eye*wi
+			phisFFT(:,i+1,:) = phisFFT(:,i+1,:) + EsFFT(:,i+1,:)*2.0_mp*pi*eye*wi
 		end do
 
 		Esb = Es(:,:,:,3)
@@ -62,13 +62,12 @@ contains
 			else
 				wi = - ( N-i )
 			end if
-			phisFFT(:,:,i+1) = EsFFT(:,:,i+1)*2.0_mp*pi*eye*wi
+			phisFFT(:,:,i+1) = phisFFT(:,:,i+1) + EsFFT(:,:,i+1)*2.0_mp*pi*eye*wi
 		end do
 
 		phisFFT = phisFFT*1.0_mp/L/M/N
 
 		rhsFFT = phisFFT/W
-		rhsFFT(1,1,1) = (0.0_mp, 0.0_mp)
 		call dfftw_plan_dft_3d(plan,L,M,N,rhsFFT,rhosb,FFTW_FORWARD,FFTW_ESTIMATE)
 		call dfftw_execute_dft(plan,rhsFFT,rhosb)
 		call dfftw_destroy_plan(plan)

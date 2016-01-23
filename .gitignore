@@ -1,3 +1,4 @@
 *.o
 *.mod
 /data/*.bin
+.DS_Store

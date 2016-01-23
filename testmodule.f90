@@ -70,7 +70,7 @@ contains
 		print *, 'dJdA = ', dJdA
 
 		dA = 0.0_mp
-		dA(1) = (0.1_mp)**9
+		dA(2) = (0.1_mp)**9
 		A = A+dA
 		rho = 0.0_mp
 		do i=1,Nf
@@ -83,7 +83,7 @@ contains
 
 		J1 = SUM( PRODUCT(dx)*weight*(E(:,:,:,1)**2 + E(:,:,:,2)**2 + E(:,:,:,3)**2) )
 		print *, 'J1 = ', J1
-		print *, 'actual dJdA = ', (J1-J0)/dA(1)
+		print *, 'actual dJdA = ', (J1-J0)/dA(2)
 	end subroutine
 
 	subroutine verify_assignment(this)
