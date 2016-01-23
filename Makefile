@@ -11,8 +11,8 @@ LIBS    = $(LAPACKLIB) $(FFTWLIBS)
 
 
 EXE = exec
-F90SRC = main.f90 random.f90 declaration.f90 init.f90 modPlasma.f90 timeStep.f90 assignFunctions.f90 convergence.f90 MatrixSolver.f90 constants.f90 testmodule.f90
-F90OBJ = main.o random.o declaration.o init.o modPlasma.o timeStep.o assignFunctions.o convergence.o MatrixSolver.o constants.o testmodule.o
+F90SRC = constants.f90 random.f90 MatrixSolver.f90 modPlasma.f90 modMesh.f90 modAssign.f90 modRecord.f90 modPM3D.f90 timeStep.f90 init.f90 testmodule.f90 main.f90
+F90OBJ = constants.o random.o MatrixSolver.o modPlasma.o modMesh.o modAssign.o modRecord.o modPM3D.o timeStep.o init.o testmodule.o main.o
 
 ### Targets
 all: $(EXE)
@@ -30,12 +30,16 @@ $(EXE): $(F90OBJ)
 # Dependencies
 MatrixSolver.o : constants.o
 modPlasma.o : constants.o
-declaration.o : modPlasma.o
-init.o: declaration.o random.o MatrixSolver.o
-assignFunctions.o : declaration.o
-timeStep.o : assignFunctions.o MatrixSolver.o
+modMesh.o : MatrixSolver.o
+modAssign.o : modPlasma.o modMesh.o
+modRecord.o : modPlasma.o modMesh.o
+modPM3D.o : modPlasma.o modMesh.o modAssign.o modRecord.o
+timeStep.o : modPM3D.o
+init.o: modPM3D.o random.o
 testmodule.o : init.o timeStep.o
 main.o : testmodule.o
+#assignFunctions.o : declaration.o
+#main.o : testmodule.o
 #convergence.o : init.o timeStep.o
 #main.o: convergence.o
 

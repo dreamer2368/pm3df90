@@ -167,9 +167,8 @@ contains
 		y(:,:,Ng(3),3) = 0.5_mp/dx(3)*( x(:,:,1) - x(:,:,Ng(3)-1) )
 	end function
 
-	subroutine FFTPoisson_setup(N,dx,W)
+	subroutine FFTPoisson_setup(N,W)
 		integer, intent(in) :: N(3)
-		real(mp), intent(in) :: dx(3)
 		complex(mp), intent(out) :: W(N(1),N(2),N(3))
 		integer :: i,j,k, wi,wj,wk
 		complex(mp) :: wx,wy,wz
