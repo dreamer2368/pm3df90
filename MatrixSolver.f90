@@ -36,7 +36,7 @@ contains
 			else
 				wi = - ( L-i )
 			end if
-			phisFFT(i+1,:,:) = phisFFT(i+1,:,:) + EsFFT(i+1,:,:)*2.0_mp*pi*eye*wi
+			phisFFT(i+1,:,:) = phisFFT(i+1,:,:) - EsFFT(i+1,:,:)*2.0_mp*pi*eye*wi
 		end do
 
 		Esb = Es(:,:,:,2)
@@ -49,7 +49,7 @@ contains
 			else
 				wi = - ( M-i )
 			end if
-			phisFFT(:,i+1,:) = phisFFT(:,i+1,:) + EsFFT(:,i+1,:)*2.0_mp*pi*eye*wi
+			phisFFT(:,i+1,:) = phisFFT(:,i+1,:) - EsFFT(:,i+1,:)*2.0_mp*pi*eye*wi
 		end do
 
 		Esb = Es(:,:,:,3)
@@ -62,7 +62,7 @@ contains
 			else
 				wi = - ( N-i )
 			end if
-			phisFFT(:,:,i+1) = phisFFT(:,:,i+1) + EsFFT(:,:,i+1)*2.0_mp*pi*eye*wi
+			phisFFT(:,:,i+1) = phisFFT(:,:,i+1) - EsFFT(:,:,i+1)*2.0_mp*pi*eye*wi
 		end do
 
 		phisFFT = phisFFT*1.0_mp/L/M/N
@@ -94,7 +94,7 @@ contains
 		xFFT = rhsFFT/W
 		xFFT(1,1,1) = (0.0_mp, 0.0_mp)
 
-		!gradient in z direction
+		!(-1)*gradient in z direction
 		do i=0,N-1
 			if( i.le.N/2 ) then
 				wi = i
@@ -107,7 +107,7 @@ contains
 		call dfftw_plan_dft_3d(plan,L,M,N,yFFT,yb,FFTW_BACKWARD,FFTW_ESTIMATE)
 		call dfftw_execute_dft(plan,yFFT,yb)
 		call dfftw_destroy_plan(plan)
-		y(:,:,:,3) = REALPART(yb)*1.0_mp/L/M/N
+		y(:,:,:,3) = -REALPART(yb)*1.0_mp/L/M/N
 
 		!gradient in y direction
 		do i=0,M-1
@@ -122,7 +122,7 @@ contains
 		call dfftw_plan_dft_3d(plan,L,M,N,yFFT,yb,FFTW_BACKWARD,FFTW_ESTIMATE)
 		call dfftw_execute_dft(plan,yFFT,yb)
 		call dfftw_destroy_plan(plan)
-		y(:,:,:,2) = REALPART(yb)*1.0_mp/L/M/N
+		y(:,:,:,2) = -REALPART(yb)*1.0_mp/L/M/N
 
 		!gradient in x direction
 		do i=0,L-1
@@ -137,7 +137,7 @@ contains
 		call dfftw_plan_dft_3d(plan,L,M,N,yFFT,yb,FFTW_BACKWARD,FFTW_ESTIMATE)
 		call dfftw_execute_dft(plan,yFFT,yb)
 		call dfftw_destroy_plan(plan)
-		y(:,:,:,1) = REALPART(yb)*1.0_mp/L/M/N
+		y(:,:,:,1) = -REALPART(yb)*1.0_mp/L/M/N
 	end subroutine
 
 	function Gradient(x,dx,Ng) result(y)						!Derivative with periodic BC
