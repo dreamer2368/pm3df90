@@ -6,7 +6,7 @@ module declaration
 
 	! parameters setup
 	integer, parameter :: Nd(3) = (/ 2**0, 2**7, 2**7 /)
-	integer, parameter :: N = PRODUCT(Nd)
+	integer, parameter :: N = Nd(1)*Nd(2)*Nd(3)
 	real(mp), parameter :: L = 2*pi/( sqrt(3.0_mp)/2.0_mp/sqrt(2.0_mp)/0.2_mp )
 	real(mp), parameter :: eps0 = 1.0_mp
 	real(mp), parameter :: wp = 1.0_mp
