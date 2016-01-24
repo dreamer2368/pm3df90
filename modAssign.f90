@@ -28,7 +28,7 @@ contains
 	end subroutine
 
 	subroutine destroyAssign(this)
-		type(pmAssign), intent(out) :: this
+		type(pmAssign), intent(inout) :: this
 
 		deallocate(this%g)
 		deallocate(this%frac)

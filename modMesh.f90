@@ -36,7 +36,7 @@ contains
 	end subroutine
 
 	subroutine setMesh(this,rho_back)
-		type(mesh), intent(out) :: this
+		type(mesh), intent(inout) :: this
 		real(mp), intent(in) :: rho_back
 
 		this%rho_back = rho_back

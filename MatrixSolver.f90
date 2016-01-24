@@ -188,7 +188,7 @@ contains
 				else
 					wj = - ( N(2)-j )
 				end if
-				do i=0,N(1)
+				do i=0,N(1)-1
 					if( i.le.N(1)/2 ) then
 						wi = i
 					else

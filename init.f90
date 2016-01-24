@@ -22,7 +22,7 @@ contains
 		real(mp), intent(in) :: v0
 		real(mp), intent(out) :: xp0(this%n,3), vp0(this%n,3), qs(this%n),ms(this%n),rho_back
 		real(mp) :: L(3),qe,me
-		integer :: i1,i2,i3,pm(this%n)
+		integer :: i,i1,i2,i3,pm(this%n)
 		L = this%L
 
 		if( this%n .ne. PRODUCT(Nd) ) then
@@ -45,7 +45,7 @@ contains
 				end do
 			end do
 		end do
-		xp0(:,1) = xp0(:,1) - A*L(1)/Nd(1)*SIN( 2.0_mp*pi*xp0(:,1)/L(1)*mode ) + 0.5_mp*L(1)
+		xp0(:,1) = xp0(:,1) - this%A0*L(1)/Nd(1)*SIN( 2.0_mp*pi*xp0(:,1)/L(1)*mode ) + 0.5_mp*L(1)
 
 		!velocity distribution initialize
 !		vp0 = vT*randn(N)
