@@ -79,10 +79,10 @@ contains
 			!Force assignment : mat'*E
 			call forceAssign(this%a,this%p,this%m)
 
-			!Half time step advancement in velocity
-			this%p%vp(:,1) = this%p%vp(:,1) + dt/2.0_mp*this%p%qs/this%p%ms*this%p%Ep(:,1)
-			this%p%vp(:,2) = this%p%vp(:,2) + dt/2.0_mp*this%p%qs/this%p%ms*this%p%Ep(:,2)
-			this%p%vp(:,3) = this%p%vp(:,3) + dt/2.0_mp*this%p%qs/this%p%ms*this%p%Ep(:,3)
+			!Single time step advancement in velocity
+			this%p%vp(:,1) = this%p%vp(:,1) + dt*this%p%qs/this%p%ms*this%p%Ep(:,1)
+			this%p%vp(:,2) = this%p%vp(:,2) + dt*this%p%qs/this%p%ms*this%p%Ep(:,2)
+			this%p%vp(:,3) = this%p%vp(:,3) + dt*this%p%qs/this%p%ms*this%p%Ep(:,3)
 		end do
 	end subroutine
 
