@@ -11,12 +11,8 @@ program main
 
 	call cpu_time(start)
 
-!	call setup					!A,B and QOI are initialized here
-!	call particle_initialize
-!	call forwardsweep(langmuir)
-!	call destroyPlasma(langmuir)
-
-	call verify_assignment
+	call twostream(0.2_mp,(/ 64,64,64 /),(/ 2**7,2**4,2**4 /))
+!	call verify_assignment
 !	call test_FFTPoisson_adj((/ 32,32,32 /),2)
 
 	call cpu_time(finish)

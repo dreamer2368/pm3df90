@@ -38,10 +38,6 @@ timeStep.o : modPM3D.o
 init.o: modPM3D.o random.o
 testmodule.o : init.o timeStep.o
 main.o : testmodule.o
-#assignFunctions.o : declaration.o
-#main.o : testmodule.o
-#convergence.o : init.o timeStep.o
-#main.o: convergence.o
 
 clean:
 	rm *.o *.mod $(EXE)
