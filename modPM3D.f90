@@ -18,30 +18,7 @@ module modPM3D
 		type(pmAssign) :: a
 	end type
 
-	! parameters setup
-!	integer, parameter :: Nd(3) = (/ 2**0, 2**7, 2**7 /)
-
-!	real(mp) :: Ti = 40.0_mp
-!	real(mp) :: Tp = 2.0_mp*pi/wp
-!	real(mp) :: T = 40.0_mp
-!	real(mp) :: T = 40.0_mp + 10.0_mp*(2.0_mp*pi/wp)
-
-	!initial spatial distribution
-	integer, parameter :: mode = 1
-
-	!initial velocity distribution
-	real(mp), parameter :: vT = 0.0_mp
-	real(mp), parameter :: v0 = 0.0_mp
-!	real(mp) :: vp0(N,3)
-!	integer :: pm(N)
-
-	!grid and operators setup
-!	integer, parameter :: Ng(3) = (/ 64, 64, 64 /)
-
-	!error convergence variable
-	real(mp) :: fDA(30)
-	real(mp) :: ek(30)
-	real(mp) :: e(9,30)
+   real(mp) :: mode = 1.0_mp
 
 contains
 
@@ -75,6 +52,10 @@ contains
 		this%nt = CEILING(Tf/this%dt)
 		this%dt = Tf/this%nt
 		this%ni = FLOOR(Ti/this%dt) + 1
+      print *, 'Plasma is created'
+      print *, 'L = (',this%L,')'
+      print *, 'Ng = (',Ng,')'
+      print *, 'N = ',N,', A = ',this%A0
 		print *, 'Ni = ',this%ni,', Nt = ',this%nt,', dt = ',this%dt
 
 		this%eps0 = 1.0_mp

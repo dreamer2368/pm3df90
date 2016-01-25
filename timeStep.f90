@@ -71,10 +71,11 @@ contains
 			!field equation rhs
 			rhs = -this%m%rho/this%eps0
 			!solve field equation
-			call FFTPoisson(this%m%phi,rhs,this%m%W)				!FFT-based Poisson solver
+!			call FFTPoisson(this%m%phi,rhs,this%m%W)				!FFT-based Poisson solver
 
 			!Electric field : -D*phi
-			this%m%E = - Gradient(this%m%phi,this%m%dx, this%ng)
+!			this%m%E = - Gradient(this%m%phi,this%m%dx, this%ng)
+         call FFTEfield(this%m%E,rhs,this%m%W)
 
 			!Force assignment : mat'*E
 			call forceAssign(this%a,this%p,this%m)

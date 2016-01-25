@@ -45,7 +45,7 @@ contains
 				end do
 			end do
 		end do
-		xp0(:,1) = xp0(:,1) - this%A0*L(1)/Nd(1)*SIN( 2.0_mp*pi*xp0(:,1)/L(1)*mode ) + 0.5_mp*L(1)
+		xp0(:,1) = xp0(:,1) - this%A0*L(1)/this%n*SIN( 2.0_mp*pi*xp0(:,1)/L(1)*mode )
 
 		!velocity distribution initialize
 !		vp0 = vT*randn(N)

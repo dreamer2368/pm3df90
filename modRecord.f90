@@ -58,7 +58,7 @@ contains
 		type(recordData), intent(in) :: this
 		integer :: i
 
-		open(unit=301,file='data/record.out',status='replace')
+		open(unit=301,file='data/record',status='replace')
 		write(301,*) this%n, this%ng, this%nt, this%L
 		close(301)
 
