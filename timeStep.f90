@@ -23,11 +23,11 @@ contains
 		!field equation rhs
 		rhs = -this%m%rho/this%eps0
 		!solve field equation
-		call FFTPoisson(this%m%phi,rhs,this%m%W)				!FFT-based Poisson solver
+!		call FFTPoisson(this%m%phi,rhs,this%m%W)				!FFT-based Poisson solver
 !
 !		!Electric field : -D*phi
-		this%m%E = - Gradient(this%m%phi,this%m%dx, this%ng)
-!		call FFTEfield(this%m%E,rhs,this%m%W)
+!		this%m%E = - Gradient(this%m%phi,this%m%dx, this%ng)
+		call FFTEfield(this%m%E,rhs,this%m%W,L)
 
 		!Force assignment : mat'*E
 		call forceAssign(this%a,this%p,this%m)
@@ -53,7 +53,7 @@ contains
 			call recordPlasma(this%r,this%p,this%m,k)									!record for n=0~(Nt-1)
 
 			if(k==this%ni) then
-				this%p%xp(:,1) = this%p%xp(:,1) + dt*B*L/N*SIN(4.0_mp*pi*this%p%xp(:,1)/L*mode)		!xp_(Ni-1) : k=Ni, xp_Ni : k=(Ni+1)
+				this%p%xp(:,1) = this%p%xp(:,1) + dt*B*L(1)/N*SIN(4.0_mp*pi*this%p%xp(:,1)/L(1)*mode)		!xp_(Ni-1) : k=Ni, xp_Ni : k=(Ni+1)
 			end if
 			this%p%xp = this%p%xp + dt*this%p%vp
 
@@ -72,11 +72,11 @@ contains
 			!field equation rhs
 			rhs = -this%m%rho/this%eps0
 			!solve field equation
-			call FFTPoisson(this%m%phi,rhs,this%m%W)				!FFT-based Poisson solver
+!			call FFTPoisson(this%m%phi,rhs,this%m%W)				!FFT-based Poisson solver
 
 			!Electric field : -D*phi
-			this%m%E = - Gradient(this%m%phi,this%m%dx, this%ng)
-!			call FFTEfield(this%m%E,rhs,this%m%W)
+!			this%m%E = - Gradient(this%m%phi,this%m%dx, this%ng)
+			call FFTEfield(this%m%E,rhs,this%m%W,L)
 
 			!Force assignment : mat'*E
 			call forceAssign(this%a,this%p,this%m)
