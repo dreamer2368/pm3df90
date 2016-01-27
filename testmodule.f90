@@ -11,7 +11,7 @@ subroutine twostream(v0,Ng,Nd)
 	real(mp), intent(in) :: v0
 	integer, intent(in) :: Ng(3), Nd(3)
 	type(PM3D) :: this
-	real(mp) :: Tf=40.0_mp,Ti=20.0_mp,rho_back
+	real(mp) :: Tf=60.0_mp,Ti=20.0_mp,rho_back
 	integer :: N
 	real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
 
@@ -65,11 +65,11 @@ end subroutine
 
 		weight = 1.0_mp
 
-		call FFTPoisson_setup(N,W)
+		call FFTPoisson_setup(N,W,L)
 
 		rhs = -rho/eps0
 
-		call FFTEfield(E,rhs,W)
+		call FFTEfield(E,rhs,W,L)
 
 		J0 = SUM( PRODUCT(dx)*weight*(E(:,:,:,1)**2 + E(:,:,:,2)**2 + E(:,:,:,3)**2) )
 		print *, 'J0 = ', J0
@@ -78,7 +78,7 @@ end subroutine
 			Es(:,:,:,i) = -2.0_mp*PRODUCT(dx)*weight*E(:,:,:,i)
 		end do
 
-		call FFTAdj(Es,rhos,W)
+		call FFTAdj(Es,rhos,W,L)
 		rhos = rhos/eps0
 
 		do i=1,Nf
@@ -96,7 +96,7 @@ end subroutine
 
 		rhs = -rho/eps0
 
-		call FFTEfield(E,rhs,W)
+		call FFTEfield(E,rhs,W,L)
 
 		J1 = SUM( PRODUCT(dx)*weight*(E(:,:,:,1)**2 + E(:,:,:,2)**2 + E(:,:,:,3)**2) )
 		print *, 'J1 = ', J1

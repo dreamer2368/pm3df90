@@ -31,8 +31,10 @@ contains
 		allocate(this%rho(ng(1),ng(2),ng(3)))
 
 		allocate(this%W(ng(1),ng(2),ng(3)))
+!		allocate(this%W(ng(1)/2+1,ng(2),ng(3)))
 
-		call FFTPoisson_setup(ng,this%W)
+		call FFTPoisson_setup(ng,this%W,L)
+!		call FFTPoisson_setup2(ng,this%dx,this%W)
 	end subroutine
 
 	subroutine setMesh(this,rho_back)

@@ -113,13 +113,23 @@ contains
 		type(pmAssign), intent(inout) :: this
 		type(plasma), intent(inout) :: p
 		type(mesh), intent(inout) :: m
-		integer :: i
+		integer :: i,j
 
 		p%Ep = 0.0_mp
 		do i=1,this%n
 			p%Ep(i,1) = SUM( this%frac(i,:,:,:)*m%E( this%g(i,:,1), this%g(i,:,2), this%g(i,:,3), 1 ) )
 			p%Ep(i,2) = SUM( this%frac(i,:,:,:)*m%E( this%g(i,:,1), this%g(i,:,2), this%g(i,:,3), 2 ) )
 			p%Ep(i,3) = SUM( this%frac(i,:,:,:)*m%E( this%g(i,:,1), this%g(i,:,2), this%g(i,:,3), 3 ) )
+!print *, 'particle ',i
+!print *, 'xp(',i,')=',p%xp(i,:)
+!print *, 'vp(',i,')=',p%vp(i,:)
+!print *, 'Ep(',i,')=',p%Ep(i,:)
+!do j=1,8
+!	print *, 'g(',this%g(i,2-MOD(j,2),1),',',this%g(i,MOD((j-1)/2,2)+1,2),',',this%g(i,MOD((j-1)/4,2)+1,3),')=',	&
+!		this%frac(i,2-MOD(j,2),MOD((j-1)/2,2)+1,MOD((j-1)/4,2)+1)
+!	print *, m%E( this%g(i,2-MOD(j,2),1), this%g(i,MOD((j-1)/2,2)+1,2), this%g(i,MOD((j-1)/4,2)+1,3), : )
+!	print *, m%phi( this%g(i,2-MOD(j,2),1), this%g(i,MOD((j-1)/2,2)+1,2), this%g(i,MOD((j-1)/4,2)+1,3) )
+!end do
 		end do
 	end subroutine
 !

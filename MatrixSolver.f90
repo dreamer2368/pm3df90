@@ -8,8 +8,8 @@ module MatrixSolver
 
 contains
 
-	subroutine FFTAdj(Es,rhos,W)
-		real(mp), intent(in) :: Es(:,:,:,:)
+	subroutine FFTAdj(Es,rhos,W,D)
+		real(mp), intent(in) :: Es(:,:,:,:), D(3)
 		complex(mp), intent(in) :: W(size(Es,1),size(Es,2),size(Es,3))
 		real(mp), intent(out) :: rhos(size(Es,1),size(Es,2),size(Es,3))
 		integer*8 :: plan
@@ -36,7 +36,7 @@ contains
 			else
 				wi = - ( L-i )
 			end if
-			phisFFT(i+1,:,:) = phisFFT(i+1,:,:) - EsFFT(i+1,:,:)*2.0_mp*pi*eye*wi
+			phisFFT(i+1,:,:) = phisFFT(i+1,:,:) - EsFFT(i+1,:,:)*2.0_mp*pi*eye*wi/D(1)
 		end do
 
 		Esb = Es(:,:,:,2)
@@ -49,7 +49,7 @@ contains
 			else
 				wi = - ( M-i )
 			end if
-			phisFFT(:,i+1,:) = phisFFT(:,i+1,:) - EsFFT(:,i+1,:)*2.0_mp*pi*eye*wi
+			phisFFT(:,i+1,:) = phisFFT(:,i+1,:) - EsFFT(:,i+1,:)*2.0_mp*pi*eye*wi/D(2)
 		end do
 
 		Esb = Es(:,:,:,3)
@@ -62,7 +62,7 @@ contains
 			else
 				wi = - ( N-i )
 			end if
-			phisFFT(:,:,i+1) = phisFFT(:,:,i+1) - EsFFT(:,:,i+1)*2.0_mp*pi*eye*wi
+			phisFFT(:,:,i+1) = phisFFT(:,:,i+1) - EsFFT(:,:,i+1)*2.0_mp*pi*eye*wi/D(3)
 		end do
 
 		phisFFT = phisFFT*1.0_mp/L/M/N
@@ -74,8 +74,8 @@ contains
 		rhos = REALPART(rhosb)
 	end subroutine
 
-	subroutine FFTEfield(y,rhs,W)
-		real(mp), intent(in) :: rhs(:,:,:)
+	subroutine FFTEfield(y,rhs,W,D)
+		real(mp), intent(in) :: rhs(:,:,:), D(3)
 		complex(mp), intent(in) :: W(size(rhs,1),size(rhs,2),size(rhs,3))
 		real(mp), intent(out) :: y(size(rhs,1),size(rhs,2),size(rhs,3),3)			!!Gradient of the solution
 		integer*8 :: plan
@@ -101,7 +101,7 @@ contains
 			else
 				wi = - ( N-i )
 			end if
-			yFFT(:,:,i+1) = xFFT(:,:,i+1)*2.0_mp*pi*eye*wi
+			yFFT(:,:,i+1) = xFFT(:,:,i+1)*2.0_mp*pi*eye*wi/D(3)
 		end do
 
 		call dfftw_plan_dft_3d(plan,L,M,N,yFFT,yb,FFTW_BACKWARD,FFTW_ESTIMATE)
@@ -116,7 +116,7 @@ contains
 			else
 				wi = - ( M-i )
 			end if
-			yFFT(:,i+1,:) = xFFT(:,i+1,:)*2.0_mp*pi*eye*wi
+			yFFT(:,i+1,:) = xFFT(:,i+1,:)*2.0_mp*pi*eye*wi/D(2)
 		end do
 
 		call dfftw_plan_dft_3d(plan,L,M,N,yFFT,yb,FFTW_BACKWARD,FFTW_ESTIMATE)
@@ -131,7 +131,7 @@ contains
 			else
 				wi = - ( L-i )
 			end if
-			yFFT(i+1,:,:) = xFFT(i+1,:,:)*2.0_mp*pi*eye*wi
+			yFFT(i+1,:,:) = xFFT(i+1,:,:)*2.0_mp*pi*eye*wi/D(1)
 		end do
 
 		call dfftw_plan_dft_3d(plan,L,M,N,yFFT,yb,FFTW_BACKWARD,FFTW_ESTIMATE)
@@ -167,15 +167,16 @@ contains
 		y(:,:,Ng(3),3) = 0.5_mp/dx(3)*( x(:,:,1) - x(:,:,Ng(3)-1) )
 	end function
 
-	subroutine FFTPoisson_setup(N,W)
+	subroutine FFTPoisson_setup(N,W,L)
 		integer, intent(in) :: N(3)
+		real(mp), intent(in) :: L(3)
 		complex(mp), intent(out) :: W(N(1),N(2),N(3))
 		integer :: i,j,k, wi,wj,wk
 		complex(mp) :: wx,wy,wz
 
-		wx = 2.0_mp*pi*eye
-		wy = 2.0_mp*pi*eye
-		wz = 2.0_mp*pi*eye
+		wx = 2.0_mp*pi*eye/L(1)
+		wy = 2.0_mp*pi*eye/L(2)
+		wz = 2.0_mp*pi*eye/L(3)
 		do k=0,N(3)-1
 			if( k.le.N(3)/2 ) then
 				wk = k
