@@ -32,7 +32,7 @@ end subroutine
 		real(mp) :: xg(N(1)), yg(N(2)), zg(N(3))
 		real(mp) :: eps0 = 1.0_mp
 		real(mp) :: L(3) = (/ 1.0_mp, 1.0_mp, 1.0_mp /)					!cubic size
-		real(mp), dimension(N(1),N(2),N(3)) :: rho, rhs, weight, rhos
+		real(mp), dimension(N(1),N(2),N(3)) :: rho, rhs, phi, weight, rhos
 		real(mp), dimension(N(1),N(2),N(3),3) :: E,Es
 		real(mp) :: rhok(N(1),N(2),N(3),Nf)
 
@@ -69,7 +69,9 @@ end subroutine
 
 		rhs = -rho/eps0
 
-		call FFTEfield(E,rhs,W,L)
+		call FFTPoisson(phi,rhs,W)
+
+		E = - Gradient(phi,dx,N)
 
 		J0 = SUM( PRODUCT(dx)*weight*(E(:,:,:,1)**2 + E(:,:,:,2)**2 + E(:,:,:,3)**2) )
 		print *, 'J0 = ', J0
@@ -78,7 +80,7 @@ end subroutine
 			Es(:,:,:,i) = -2.0_mp*PRODUCT(dx)*weight*E(:,:,:,i)
 		end do
 
-		call FFTAdj(Es,rhos,W,L)
+		call FFTAdj(Es,rhos,W,dx)
 		rhos = rhos/eps0
 
 		do i=1,Nf
@@ -87,7 +89,8 @@ end subroutine
 		print *, 'dJdA = ', dJdA
 
 		dA = 0.0_mp
-		dA(2) = (0.1_mp)**9
+		j = 1
+		dA(j) = (0.1_mp)**9
 		A = A+dA
 		rho = 0.0_mp
 		do i=1,Nf
@@ -96,11 +99,13 @@ end subroutine
 
 		rhs = -rho/eps0
 
-		call FFTEfield(E,rhs,W,L)
+		call FFTPoisson(phi,rhs,W)
+
+		E = - Gradient(phi,dx,N)
 
 		J1 = SUM( PRODUCT(dx)*weight*(E(:,:,:,1)**2 + E(:,:,:,2)**2 + E(:,:,:,3)**2) )
 		print *, 'J1 = ', J1
-		print *, 'actual dJdA = ', (J1-J0)/dA(2)
+		print *, 'actual dJdA = ', (J1-J0)/dA(j)
 	end subroutine
 
 	subroutine verify_assignment()
