@@ -7,22 +7,111 @@ module testmodule
 
 contains
 
-subroutine twostream(v0,Ng,Nd)
-	real(mp), intent(in) :: v0
-	integer, intent(in) :: Ng(3), Nd(3)
-	type(PM3D) :: this
-	real(mp) :: Tf=60.0_mp,Ti=20.0_mp,rho_back
-	integer :: N
-	real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
+	subroutine test_particle_adj(N,Np)
+		integer, intent(in) :: N(3)										!!grid number
+		integer, intent(in) :: Np										!!number of particles
+		type(plasma) :: p
+		type(mesh) :: m
+		type(pmassign) ::a
 
-	N = PRODUCT(Nd)
-	call buildPM3D(this,Tf,Ti,Ng,N)
+		real(mp) :: dx(3)												!!grid size
+		real(mp) :: eps0 = 1.0_mp, rho_back, qe, qs(Np), ms(Np)
+		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
+		real(mp), dimension(N(1),N(2),N(3)) :: rhs, phi, weight, rhos
+		real(mp), dimension(N(1),N(2),N(3),3) :: Es
+		real(mp) :: xp(Np,3), vp(Np,3), dxp, xps(Np,3)
 
-	call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-	call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+		real(mp) :: J0,J1,dJdxp(Np,3)
+		real(mp) :: fxp = (0.1_mp)**9
+		integer :: i,j,k(2)
 
-	call destroyPM3D(this)
-end subroutine
+		call buildPlasma(p,Np)
+		call buildMesh(m,L,N)
+		call buildAssign(a,Np,N)
+
+	!particle, mesh setup
+		print *, 'Original xp'
+		do j=1,Np
+			xp(j,:) = 0.1_mp*L*(/ j, 7*j, 4*j /)
+			print *, xp(j,:)
+		end do
+		qe = -0.1_mp
+		qs = qe
+		ms = -qs
+		rho_back = -qe*p%n/PRODUCT(L)
+		vp = 0.0_mp
+		call setPlasma(p,xp,vp,qs,ms)
+		call setMesh(m,rho_back)
+	!assignment
+		call assignMatrix(a,p,m,p%xp)
+		call chargeAssign(a,p,m)
+	!field solver
+		rhs = -m%rho/eps0
+		call FFTPoisson(m%phi,rhs,m%W)
+		m%E = - Gradient(m%phi,m%dx,m%ng)
+	!QoI evaluation
+		weight = 0.0_mp
+		weight(2*N(1)/5:3*N(1)/5,2*N(2)/5:3*N(2)/5,2*N(3)/5:3*N(3)/5) = 1.0_mp
+		J0 = SUM( PRODUCT(m%dx)*weight*(m%E(:,:,:,1)**2 + m%E(:,:,:,2)**2 + m%E(:,:,:,3)**2) )
+		print *, 'J0 = ', J0
+
+	!Adjoint sensitivity solver
+		do i=1,3
+			Es(:,:,:,i) = -2.0_mp*PRODUCT(m%dx)*weight*m%E(:,:,:,i)
+		end do
+
+		call FFTAdj(Es,rhos,m%W,m%dx)
+		rhos = -rhos/eps0
+
+		call Adj_chargeAssign(a,p,m,rhos,xps)
+
+		print *, 'dJdxp'
+		do i=1,Np
+			print *, xps(i,:)
+		end do
+
+	!FD approximation
+		k = (/1,2/)
+		dxp = xp(k(1),k(2))*fxp
+		xp(k(1),k(2)) = xp(k(1),k(2)) + dxp
+		print *, 'Perturbed xp'
+		do j=1,Np
+			print *, xp(j,:)
+		end do
+		call setPlasma(p,xp,vp,qs,ms)
+	!assignment
+		call assignMatrix(a,p,m,p%xp)
+		call chargeAssign(a,p,m)
+	!field solver
+		rhs = -m%rho/eps0
+		call FFTPoisson(m%phi,rhs,m%W)
+		m%E = - Gradient(m%phi,m%dx,m%ng)
+	!QoI re-evaluation, Sensitivity approximation
+		J1 = SUM( PRODUCT(m%dx)*weight*(m%E(:,:,:,1)**2 + m%E(:,:,:,2)**2 + m%E(:,:,:,3)**2) )
+		print *, 'J1 = ', J1
+		print *, 'dJdxp(',k(1),',',k(2),')=', (J1-J0)/dxp
+
+		call destroyPlasma(p)
+		call destroyMesh(m)
+		call destroyAssign(a)
+	end subroutine
+
+	subroutine twostream(v0,Ng,Nd)
+		real(mp), intent(in) :: v0
+		integer, intent(in) :: Ng(3), Nd(3)
+		type(PM3D) :: this
+		real(mp) :: Tf=60.0_mp,Ti=20.0_mp,rho_back
+		integer :: N
+		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
+
+		N = PRODUCT(Nd)
+		call buildPM3D(this,Tf,Ti,Ng,N)
+
+		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+
+		call destroyPM3D(this)
+	end subroutine
 
 	subroutine test_FFTPoisson_adj(N,Nf)
 		integer, intent(in) :: N(3)										!!grid number

@@ -120,46 +120,29 @@ contains
 			p%Ep(i,1) = SUM( this%frac(i,:,:,:)*m%E( this%g(i,:,1), this%g(i,:,2), this%g(i,:,3), 1 ) )
 			p%Ep(i,2) = SUM( this%frac(i,:,:,:)*m%E( this%g(i,:,1), this%g(i,:,2), this%g(i,:,3), 2 ) )
 			p%Ep(i,3) = SUM( this%frac(i,:,:,:)*m%E( this%g(i,:,1), this%g(i,:,2), this%g(i,:,3), 3 ) )
-!print *, 'particle ',i
-!print *, 'xp(',i,')=',p%xp(i,:)
-!print *, 'vp(',i,')=',p%vp(i,:)
-!print *, 'Ep(',i,')=',p%Ep(i,:)
-!do j=1,8
-!	print *, 'g(',this%g(i,2-MOD(j,2),1),',',this%g(i,MOD((j-1)/2,2)+1,2),',',this%g(i,MOD((j-1)/4,2)+1,3),')=',	&
-!		this%frac(i,2-MOD(j,2),MOD((j-1)/2,2)+1,MOD((j-1)/4,2)+1)
-!	print *, m%E( this%g(i,2-MOD(j,2),1), this%g(i,MOD((j-1)/2,2)+1,2), this%g(i,MOD((j-1)/4,2)+1,3), : )
-!	print *, m%phi( this%g(i,2-MOD(j,2),1), this%g(i,MOD((j-1)/2,2)+1,2), this%g(i,MOD((j-1)/4,2)+1,3) )
-!end do
 		end do
 	end subroutine
-!
-!	subroutine vpsAssign(this,Es,vps)
-!		type(plasma), intent(in) :: this
-!		real(mp), intent(in) :: vps(:)
-!		real(mp), intent(out) :: Es( size(this%E) )
-!		integer :: i
-!
-!		Es = 0.0_mp
-!		do i=1,this%n
-!			Es( this%gl(i) ) = Es( this%gl(i) ) + this%fracl(i)*qe/me/dx*vps(i)
-!			Es( this%gr(i) ) = Es( this%gr(i) ) + this%fracr(i)*qe/me/dx*vps(i)
-!		end do
-!	end subroutine
-!
-!	function xpsUpdate(this,vps,phis,dts,k) result(dxps)
-!		type(plasma), intent(in) :: this
-!		real(mp), intent(in) :: vps(:)
-!		real(mp), intent(in) :: phis(:)
-!		real(mp), intent(in) :: dts
-!		integer, intent(in) :: k					!current time step
-!		real(mp) :: dxps( size(vps) )
-!		integer :: i
-!
-!		dxps = 0.0_mp
-!		do i=1,this%n
-!			dxps(i) = dts*( -qe/me/dx*vps(i)*( this%Edata(this%gr(i),this%nt+1-k) - this%Edata(this%gl(i),this%nt+1-k) ) )
-!			dxps(i) = dxps(i) + dts*qe/dx/eps0*( phis(this%gr(i)) - phis(this%gl(i)) )
-!		end do
-!	end function
-!
+
+	subroutine Adj_chargeAssign(this,p,m,rhos,xps)
+		type(pmAssign), intent(inout) :: this
+		type(plasma), intent(in) :: p
+		type(mesh), intent(in) :: m
+		real(mp), intent(in) :: rhos(this%ng(1),this%ng(2),this%ng(3))
+		real(mp), intent(out) :: xps(this%n,3)
+		real(mp) :: dV
+		integer :: i
+
+		dV = PRODUCT(m%dx)
+		xps = 0.0_mp
+		do i=1,this%n
+			xps(i,1) = 1.0_mp/m%dx(1)*SUM( SUM( this%frac(i,:,:,:), 1)*rhos( this%g(i,2,1), this%g(i,:,2), this%g(i,:,3) )	&
+											- SUM( this%frac(i,:,:,:), 1)*rhos( this%g(i,1,1), this%g(i,:,2), this%g(i,:,3) ) )
+			xps(i,2) = 1.0_mp/m%dx(2)*SUM( SUM( this%frac(i,:,:,:), 2)*rhos( this%g(i,:,1), this%g(i,2,2), this%g(i,:,3) )	&
+											- SUM( this%frac(i,:,:,:), 2)*rhos( this%g(i,:,1), this%g(i,1,2), this%g(i,:,3) ) )
+			xps(i,3) = 1.0_mp/m%dx(3)*SUM( SUM( this%frac(i,:,:,:), 3)*rhos( this%g(i,:,1), this%g(i,:,2), this%g(i,2,3) )	&
+											- SUM( this%frac(i,:,:,:), 3)*rhos( this%g(i,:,1), this%g(i,:,2), this%g(i,1,3) ) )
+			xps(i,:) = - p%qs(i)/dV*xps(i,:)
+		end do
+	end subroutine
+
 end module
