@@ -123,7 +123,7 @@ contains
 		end do
 	end subroutine
 
-	subroutine Adj_rhosAssign(this,p,m,rhos,xps)
+	subroutine Adj_chargeAssign(this,p,m,rhos,xps)
 		type(pmAssign), intent(inout) :: this
 		type(plasma), intent(in) :: p
 		type(mesh), intent(in) :: m
@@ -145,7 +145,7 @@ contains
 		end do
 	end subroutine
 
-	subroutine Adj_chargeAssign(this,Eps,Es)
+	subroutine Adj_forceAssign(this,Eps,Es)
 		type(pmAssign), intent(inout) :: this
 		real(mp), intent(in) :: Eps(this%n,3)
 		real(mp), intent(out) :: Es(this%ng(1),this%ng(2),this%ng(3),3)

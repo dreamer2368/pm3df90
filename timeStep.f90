@@ -86,17 +86,6 @@ contains
 		end do
 	end subroutine
 
-	subroutine QOI(this,J)
-		type(PM3D), intent(in) :: this
-		real(mp), intent(out) :: J
-		integer :: N,Nt,Ni
-		N = this%n
-		Nt = this%nt
-		Ni = this%ni
-
-		J = 1.0_mp/N/(Nt-Ni)*SUM(this%r%vpdata(:,:,Ni+1:Nt)**2)		!omitted 1/N/T for the sake of machine precision
-	end subroutine
-
 	subroutine QOItwo(this,A,B,J)
 		type(PM3D), intent(in) :: this
 		integer, intent(in) :: A, B
