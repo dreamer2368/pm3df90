@@ -14,7 +14,7 @@ program main
 !	call twostream(0.2_mp,(/ 64,64,64 /),(/ 2**8,2**5,2**5 /))
 !	call verify_assignment
 !	call test_FFTPoisson_adj((/ 32,32,32 /),2)
-	call test_particle_adj((/ 64,64,64 /),2)
+	call test_particle_adj2((/ 64,64,64 /),2)
 
 	call cpu_time(finish)
 

@@ -7,6 +7,100 @@ module testmodule
 
 contains
 
+	subroutine test_particle_adj2(N,Np)
+		integer, intent(in) :: N(3)										!!grid number
+		integer, intent(in) :: Np										!!number of particles
+		type(plasma) :: p
+		type(mesh) :: m
+		type(pmassign) ::a
+
+		real(mp) :: dx(3)												!!grid size
+		real(mp) :: eps0 = 1.0_mp, rho_back, qe, qs(Np), ms(Np)
+		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
+		real(mp), dimension(N(1),N(2),N(3)) :: rhs, phi, weight, rhos
+		real(mp), dimension(N(1),N(2),N(3),3) :: Es
+		real(mp), dimension(Np,3) :: xp, vp, xps, xps1, xps2, Eps
+		real(mp) :: dxp
+
+		real(mp) :: J0,J1,dJdxp(Np,3)
+		real(mp) :: fxp = (0.1_mp)**9
+		integer :: i,j,k(2)
+
+		call buildPlasma(p,Np)
+		call buildMesh(m,L,N)
+		call buildAssign(a,Np,N)
+
+		!particle, mesh setup
+		print *, 'Original xp'
+		do j=1,Np
+		xp(j,:) = 0.1_mp*L*(/ j, 7*j, 4*j /)
+		print *, xp(j,:)
+		end do
+		qe = -0.1_mp
+		qs = qe
+		ms = -qs
+		rho_back = -qe*p%n/PRODUCT(L)
+		vp = 0.0_mp
+		call setPlasma(p,xp,vp,qs,ms)
+		call setMesh(m,rho_back)
+		!assignment
+		call assignMatrix(a,p,m,p%xp)
+		call chargeAssign(a,p,m)
+		!field solver
+		rhs = -m%rho/eps0
+		call FFTPoisson(m%phi,rhs,m%W)
+		m%E = - Gradient(m%phi,m%dx,m%ng)
+		!force assignment
+		call forceAssign(a,p,m)
+		!QoI evaluation
+		J0 = SUM( (p%Ep(:,1)**2 + p%Ep(:,2)**2 + p%Ep(:,3)**2) )
+		print *, 'J0 = ', J0
+
+		!Adjoint sensitivity solver
+		Eps = - 2.0_mp*p%Ep
+
+		call Adj_chargeAssign(a,Eps,Es)
+
+		call FFTAdj(Es,rhos,m%W,m%dx)
+		rhos = -rhos/eps0
+
+		call Adj_rhosAssign(a,p,m,rhos,xps1)
+		call Adj_EpsAssign(a,m,Eps,xps2)
+		xps = xps1 + xps2
+
+		print *, 'dJdxp'
+		do i=1,Np
+			print *, xps(i,:)
+		end do
+
+		!FD approximation - choose the component that you want to measure
+		k = (/2,3/)
+		dxp = xp(k(1),k(2))*fxp
+		xp(k(1),k(2)) = xp(k(1),k(2)) + dxp
+		print *, 'Perturbed xp'
+		do j=1,Np
+		print *, xp(j,:)
+		end do
+		call setPlasma(p,xp,vp,qs,ms)
+		!assignment
+		call assignMatrix(a,p,m,p%xp)
+		call chargeAssign(a,p,m)
+		!field solver
+		rhs = -m%rho/eps0
+		call FFTPoisson(m%phi,rhs,m%W)
+		m%E = - Gradient(m%phi,m%dx,m%ng)
+		!force assignment
+		call forceAssign(a,p,m)
+		!QoI evaluation
+		J1 = SUM( (p%Ep(:,1)**2 + p%Ep(:,2)**2 + p%Ep(:,3)**2) )
+		print *, 'J1 = ', J1
+		print *, 'dJdxp(',k(1),',',k(2),')=', (J1-J0)/dxp
+
+		call destroyPlasma(p)
+		call destroyMesh(m)
+		call destroyAssign(a)
+	end subroutine
+
 	subroutine test_particle_adj(N,Np)
 		integer, intent(in) :: N(3)										!!grid number
 		integer, intent(in) :: Np										!!number of particles
@@ -63,14 +157,14 @@ contains
 		call FFTAdj(Es,rhos,m%W,m%dx)
 		rhos = -rhos/eps0
 
-		call Adj_chargeAssign(a,p,m,rhos,xps)
+		call Adj_rhosAssign(a,p,m,rhos,xps)
 
 		print *, 'dJdxp'
 		do i=1,Np
 			print *, xps(i,:)
 		end do
 
-	!FD approximation
+	!FD approximation - choose the component that you want to measure
 		k = (/1,2/)
 		dxp = xp(k(1),k(2))*fxp
 		xp(k(1),k(2)) = xp(k(1),k(2)) + dxp

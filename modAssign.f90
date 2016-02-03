@@ -123,7 +123,7 @@ contains
 		end do
 	end subroutine
 
-	subroutine Adj_chargeAssign(this,p,m,rhos,xps)
+	subroutine Adj_rhosAssign(this,p,m,rhos,xps)
 		type(pmAssign), intent(inout) :: this
 		type(plasma), intent(in) :: p
 		type(mesh), intent(in) :: m
@@ -143,6 +143,52 @@ contains
 											- SUM( this%frac(i,:,:,:), 3)*rhos( this%g(i,:,1), this%g(i,:,2), this%g(i,1,3) ) )
 			xps(i,:) = - p%qs(i)/dV*xps(i,:)
 		end do
+	end subroutine
+
+	subroutine Adj_chargeAssign(this,Eps,Es)
+		type(pmAssign), intent(inout) :: this
+		real(mp), intent(in) :: Eps(this%n,3)
+		real(mp), intent(out) :: Es(this%ng(1),this%ng(2),this%ng(3),3)
+		integer :: i, g(2,3)
+
+		Es = 0.0_mp
+		do i=1,this%n
+			g = this%g(i,:,:)
+			Es( g(:,1), g(:,2), g(:,3), 1 ) = Es( g(:,1), g(:,2), g(:,3), 1 ) + Eps(i,1)*this%frac(i,:,:,:)
+			Es( g(:,1), g(:,2), g(:,3), 2 ) = Es( g(:,1), g(:,2), g(:,3), 2 ) + Eps(i,2)*this%frac(i,:,:,:)
+			Es( g(:,1), g(:,2), g(:,3), 3 ) = Es( g(:,1), g(:,2), g(:,3), 3 ) + Eps(i,3)*this%frac(i,:,:,:)
+		end do
+	end subroutine
+
+	subroutine Adj_EpsAssign(this,m,Eps,xps)
+		type(pmAssign), intent(inout) :: this
+		type(mesh), intent(in) :: m
+		real(mp), intent(in) :: Eps(this%n,3)
+		real(mp), intent(out) :: xps(this%n,3)
+		real(mp) :: frac(2,2), Epsum(this%n), Esum(this%ng(1),this%ng(2),this%ng(3))
+		integer :: i,j
+
+		xps = 0.0_mp
+		frac = 0.0_mp
+		!sum : sum in each direction --- this rank will be added by the gradient of assignment
+		do i=1,this%n
+			frac = 1.0_mp/m%dx(1)*SUM( this%frac(i,:,:,:), 1 )
+			do j=1,3
+				xps(i,1) = xps(i,1) + Eps(i,j)*SUM( frac*( m%E(this%g(i,2,1), this%g(i,:,2), this%g(i,:,3), j)		&
+														- m%E(this%g(i,1,1), this%g(i,:,2), this%g(i,:,3), j) )		)
+			end do
+			frac = 1.0_mp/m%dx(2)*SUM( this%frac(i,:,:,:), 2 )
+			do j=1,3
+				xps(i,2) = xps(i,2) + Eps(i,j)*SUM( frac*( m%E(this%g(i,:,1), this%g(i,2,2), this%g(i,:,3), j)		&
+														- m%E(this%g(i,:,1), this%g(i,1,2), this%g(i,:,3), j) )		)
+			end do
+			frac = 1.0_mp/m%dx(3)*SUM( this%frac(i,:,:,:), 3 )
+			do j=1,3
+				xps(i,3) = xps(i,3) + Eps(i,j)*SUM( frac*( m%E(this%g(i,:,1), this%g(i,:,2), this%g(i,2,3), j)		&
+														- m%E(this%g(i,:,1), this%g(i,:,2), this%g(i,1,3), j) )		)
+			end do
+		end do
+			xps = - xps
 	end subroutine
 
 end module
