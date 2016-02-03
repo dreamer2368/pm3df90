@@ -50,10 +50,10 @@ contains
 		end if
 
 		if( input.eq.0 ) then
-			this%J0 = SUM( (pm%p%Ep(:,1)**2 + pm%p%Ep(:,2)**2 + pm%p%Ep(:,3)**2) )
+			this%J0 = SUM( (pm%p%vp(:,1)**2 + pm%p%vp(:,2)**2 + pm%p%vp(:,3)**2) )
 			print *, 'J0 = ', this%J0
 		elseif( input.eq.1 ) then
-			this%J1 = SUM( (pm%p%Ep(:,1)**2 + pm%p%Ep(:,2)**2 + pm%p%Ep(:,3)**2) )
+			this%J1 = SUM( (pm%p%vp(:,1)**2 + pm%p%vp(:,2)**2 + pm%p%vp(:,3)**2) )
 			print *, 'J1 = ', this%J1
 		end if
 	end subroutine
