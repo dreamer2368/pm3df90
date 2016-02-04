@@ -8,36 +8,6 @@ module MatrixSolver
 
 contains
 
-	subroutine FFTAdj(Es,rhos,W,dx)
-		real(mp), intent(in) :: Es(:,:,:,:), dx(3)
-		complex(mp), intent(in) :: W(size(Es,1),size(Es,2),size(Es,3))
-		real(mp), intent(out) :: rhos(size(Es,1),size(Es,2),size(Es,3))
-		integer*8 :: plan
-		complex(mp), dimension(size(Es,1),size(Es,2),size(Es,3)) :: Esb, EsFFT, phisFFT, rhsFFT, phisb, rhosb
-		integer :: L,M,N, i,wi
-
-		if( size(Es,4).ne.3 ) then
-			print *, 'FAULT!! :: Adjoint Electric field is not 3 dimension'
-			stop
-		end if
-
-		L = size(Es,1)
-		M = size(Es,2)
-		N = size(Es,3)
-
-		phisb =  Divergence( Es, dx, (/L,M,N/) )
-
-		phisb = phisb*1.0_mp/L/M/N
-		call dfftw_plan_dft_3d(plan,L,M,N,phisb,phisFFT,FFTW_BACKWARD,FFTW_ESTIMATE)
-		call dfftw_execute_dft(plan,phisb,phisFFT)
-
-		rhsFFT = phisFFT/W
-		call dfftw_plan_dft_3d(plan,L,M,N,rhsFFT,rhosb,FFTW_FORWARD,FFTW_ESTIMATE)
-		call dfftw_execute_dft(plan,rhsFFT,rhosb)
-		call dfftw_destroy_plan(plan)
-		rhos = REALPART(rhosb)
-	end subroutine
-
 	function Divergence(x,dx,Ng) result(y)						!Divergence with periodic BC
 		real(mp), intent(in) :: x(:,:,:,:)						!(nx,ny,nz)
 		real(mp), intent(in) :: dx(3)							!dx, dy, dz

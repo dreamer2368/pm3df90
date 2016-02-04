@@ -68,13 +68,13 @@ contains
 		adj%Eps(:,2) = pm%p%qs/pm%p%ms*adj%vps(:,2)
 		adj%Eps(:,3) = pm%p%qs/pm%p%ms*adj%vps(:,3)
 
-		call Adj_forceAssign(pm%a,adj%Eps,adj%Es)
+		call Adj_forceAssign_E(pm%a,adj%Eps,adj%Es)
 
 		call FFTAdj(adj%Es,adj%rhos,pm%m%W,pm%m%dx)
 		adj%rhos = -adj%rhos/pm%eps0
 
 		call Adj_chargeAssign(pm%a,pm%p,pm%m,adj%rhos,dxps1)
-		call Adj_EpsAssign(pm%a,pm%m,adj%Eps,dxps2)
+		call Adj_forceAssign_xp(pm%a,pm%m,adj%Eps,dxps2)
 		adj%xps = - pm%dt*( dxps1 + dxps2 )
 
 		print *, 'dJdxp'
@@ -87,11 +87,11 @@ contains
 		end do
 
 		!FD approximation - choose the component that you want to measure
-		k = (/2,3/)
+		k = (/1,2/)
 		open(unit=301,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
 		write(301) -adj%xps(k(1),k(2))/pm%dt
 		close(301)
-		fxp = (/ ( EXP(-i*1.0_mp), i=-3,16 ) /)
+		fxp = (/ ( EXP(-i*1.0_mp), i=1,20 ) /)
 		open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
 		write(301) ABS( xp(k(1),k(2))*fxp )
 		close(301)
@@ -101,10 +101,6 @@ contains
 			dxp = 0.0_mp
 			dxp(k(1),k(2)) = xp(k(1),k(2))*fxp(i)
 			xp1 = xp + dxp
-	!		print *, 'Perturbed xp'
-	!		do j=1,Np
-	!			print *, xp(j,:)
-	!		end do
 			call setPlasma(pm%p,xp1,vp,qs,ms)
 
 			!particle move
@@ -124,6 +120,7 @@ contains
 			pm%p%vp(:,3) = pm%p%vp(:,3) + pm%dt*pm%p%qs/pm%p%ms*pm%p%Ep(:,3)
 			!QoI evaluation
 			call QoI(adj,pm,1)
+
 			print *, 'dJdxp(',k(1),',',k(2),')=', (adj%J1-adj%J0)/dxp(k(1),k(2))
 			print *, 'error = ', ABS( ( -adj%xps(k(1),k(2))/pm%dt - (adj%J1-adj%J0)/dxp(k(1),k(2)) ) )
 			write(301) (adj%J1-adj%J0)/dxp(k(1),k(2))
