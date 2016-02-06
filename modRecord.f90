@@ -12,7 +12,7 @@ module modRecord
 		real(mp), allocatable :: xpdata(:,:,:)
 		real(mp), allocatable :: vpdata(:,:,:)
 		real(mp), allocatable :: xpsdata(:,:,:)
-		real(mp), allocatable :: Exdata(:,:,:,:)
+		real(mp), allocatable :: Edata(:,:,:,:,:)
 	end type
 
 contains
@@ -31,7 +31,7 @@ contains
 		allocate(this%xpdata(n,3,nt))
 		allocate(this%vpdata(n,3,nt))
 		allocate(this%xpsdata(n,3,nt))
-		allocate(this%Exdata(ng(1),ng(2),ng(3),nt))
+		allocate(this%Edata(ng(1),ng(2),ng(3),3,nt))
 	end subroutine
 
 	subroutine destroyRecord(this)
@@ -40,7 +40,7 @@ contains
 		deallocate(this%xpdata)
 		deallocate(this%vpdata)
 		deallocate(this%xpsdata)
-		deallocate(this%Exdata)
+		deallocate(this%Edata)
 	end subroutine
 
 	subroutine recordPlasma(this,p,m,k)
@@ -51,7 +51,7 @@ contains
 
 		this%xpdata(:,:,k) = p%xp
 		this%vpdata(:,:,k) = p%vp
-		this%Exdata(:,:,:,k) = m%E(:,:,:,1)
+		this%Edata(:,:,:,:,k) = m%E
 	end subroutine
 
 	subroutine printPlasma(this)
@@ -64,11 +64,13 @@ contains
 
 		open(unit=301,file='data/xp.bin',status='replace',form='unformatted',access='stream')
 		open(unit=302,file='data/vp.bin',status='replace',form='unformatted',access='stream')
-		open(unit=303,file='data/Ex.bin',status='replace',form='unformatted',access='stream')
+		open(unit=303,file='data/E.bin',status='replace',form='unformatted',access='stream')
 		do i = 1,this%nt
 			write(301) this%xpdata(:,:,i)
 			write(302) this%vpdata(:,:,i)
-			write(303) this%Exdata(:,:,:,i)
+			write(303) this%Edata(:,:,:,1,i)
+			write(303) this%Edata(:,:,:,2,i)
+			write(303) this%Edata(:,:,:,3,i)
 		end do
 		close(301)
 		close(302)

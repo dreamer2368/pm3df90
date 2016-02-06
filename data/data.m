@@ -27,14 +27,14 @@ s=5;
 t = 32;
 for i=1:Nt
     figure(1)
-    plot(xp(:,1,i),vp(:,1,i),'.k');
-%     scatter3(squeeze(xp(:,1,i)),squeeze(xp(:,2,i)),squeeze(xp(:,3,i)),s);
-%     axis([0 Lx 0 Ly 0 Lz]);
-    axis([0 Lx -0.6 0.6]);
-    title('Spatial distribution');
-    xlabel('$x$','Interpreter','Latex');
-    ylabel('$v$','Interpreter','Latex');
-    set(gca,'fontsize',25);
+%     plot(xp(:,1,i),vp(:,1,i),'.k');
+    scatter3(squeeze(xp(:,1,i)),squeeze(xp(:,2,i)),squeeze(xp(:,3,i)),50);
+    axis([0 Lx 0 Ly 0 Lz]);
+%     axis([0 Lx -0.6 0.6]);
+%     title('Spatial distribution');
+%     xlabel('$x$','Interpreter','Latex');
+%     ylabel('$v$','Interpreter','Latex');
+%     set(gca,'fontsize',25);
 %     
 %     figure(2)
 %     mesh(squeeze(Y(:,:,t)),squeeze(X(:,:,t)),squeeze(Ex(:,:,t,i)));
@@ -51,7 +51,7 @@ for i=1:Nt
 %     xlabel('$x$','Interpreter','Latex');
 %     ylabel('$E_x$','Interpreter','Latex');
 %     set(gca,'fontsize',25);
-    pause(.001);
+    pause();
 end
 
 %%

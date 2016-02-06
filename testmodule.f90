@@ -8,6 +8,39 @@ module testmodule
 
 contains
 
+subroutine test_fullAdjoint(v0, Ng, Nd)
+	real(mp), intent(in) :: v0
+	integer, intent(in) :: Ng(3), Nd(3)
+	type(PM3D) :: this
+	type(adjoint) :: adj
+	real(mp) :: Tf=40.0_mp,Ti=20.0_mp,rho_back
+	integer :: N
+	real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
+	real(mp) :: B0=1.0_mp, dB, dJdA
+
+	N = PRODUCT(Nd)
+	call buildPM3D(this,Tf,Ti,Ng,N,B=B0)
+	call buildAdjoint(adj,this)
+
+	call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
+	call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+	call QoI(adj,this,0)
+
+	call backward_sweep(adj,this,dJdA)
+	print *, dJdA
+
+	dB = this%B0*(0.1_mp)**9
+	this%B0 = this%B0 + dB
+print *, 'B = ',this%B0
+	call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
+	call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+	call QoI(adj,this,1)
+	print *, (adj%J1 - adj%J0)/dB
+
+	call destroyAdjoint(adj)
+	call destroyPM3D(this)
+end subroutine
+
 	subroutine test_particle_adj2(N,Np)
 		integer, intent(in) :: N(3)										!!grid number
 		integer, intent(in) :: Np										!!number of particles
@@ -74,7 +107,7 @@ contains
 		adj%rhos = -adj%rhos/pm%eps0
 
 		call Adj_chargeAssign(pm%a,pm%p,pm%m,adj%rhos,dxps1)
-		call Adj_forceAssign_xp(pm%a,pm%m,adj%Eps,dxps2)
+		call Adj_forceAssign_xp(pm%a,pm%m,pm%m%E,adj%Eps,dxps2)
 		adj%xps = - pm%dt*( dxps1 + dxps2 )
 
 		print *, 'dJdxp'

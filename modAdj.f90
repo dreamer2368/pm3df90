@@ -50,12 +50,20 @@ contains
 		end if
 
 		if( input.eq.0 ) then
-			this%J0 = SUM( (pm%p%vp(:,1)**2 + pm%p%vp(:,2)**2 + pm%p%vp(:,3)**2) )
+			this%J0 = 1.0_mp/pm%n/(pm%nt-pm%ni)*SUM( pm%r%vpdata(:,:,pm%ni+1:pm%nt)**2 )
 			print *, 'J0 = ', this%J0
 		elseif( input.eq.1 ) then
-			this%J1 = SUM( (pm%p%vp(:,1)**2 + pm%p%vp(:,2)**2 + pm%p%vp(:,3)**2) )
+			this%J1 = 1.0_mp/pm%n/(pm%nt-pm%ni)*SUM( pm%r%vpdata(:,:,pm%ni+1:pm%nt)**2 )
 			print *, 'J1 = ', this%J1
 		end if
+		!For testmodule
+!		if( input.eq.0 ) then
+!			this%J0 = SUM( (pm%p%vp(:,1)**2 + pm%p%vp(:,2)**2 + pm%p%vp(:,3)**2) )
+!			print *, 'J0 = ', this%J0
+!		elseif( input.eq.1 ) then
+!			this%J1 = SUM( (pm%p%vp(:,1)**2 + pm%p%vp(:,2)**2 + pm%p%vp(:,3)**2) )
+!			print *, 'J1 = ', this%J1
+!		end if
 	end subroutine
 
 !subroutine QOI(this,J)
@@ -68,6 +76,57 @@ contains
 !
 !J = 1.0_mp/N/(Nt-Ni)*SUM(this%r%vpdata(:,:,Ni+1:Nt)**2)		!omitted 1/N/T for the sake of machine precision
 !end subroutine
+
+	subroutine backward_sweep(adj,pm, dJdA)
+		type(adjoint), intent(inout) :: adj
+		type(PM3D), intent(inout) :: pm
+		real(mp), intent(out) :: dJdA
+		real(mp), dimension(pm%n,3) :: dvps, dxps1, dxps2, dxps3
+		integer :: k, nk
+
+		adj%xps = 0.0_mp
+		adj%vps = 0.0_mp
+		do k=1,pm%nt
+			nk = pm%nt+1-k
+
+			dvps = merge(	2.0_mp/pm%n/(pm%nt-pm%ni)*pm%r%vpdata(:,:,nk),	&
+							0.0_mp,	&
+							nk >= pm%ni+1	)
+			call Adj_accel(adj,pm,dvps)
+			if( k .eq. pm%nt ) then
+				adj%vps = 0.5_mp*adj%vps
+			end if
+
+			adj%Eps(:,1) = pm%p%qs/pm%p%ms*adj%vps(:,1)
+			adj%Eps(:,2) = pm%p%qs/pm%p%ms*adj%vps(:,2)
+			adj%Eps(:,3) = pm%p%qs/pm%p%ms*adj%vps(:,3)
+
+			call assignMatrix(pm%a,pm%p,pm%m,pm%r%xpdata(:,:,nk))
+
+			call Adj_forceAssign_E(pm%a,adj%Eps,adj%Es)
+
+			call FFTAdj(adj%Es,adj%rhos,pm%m%W,pm%m%dx)
+			adj%rhos = -adj%rhos/pm%eps0
+
+			call Adj_chargeAssign(pm%a,pm%p,pm%m,adj%rhos,dxps1)
+			call Adj_forceAssign_xp(pm%a,pm%m,pm%r%Edata(:,:,:,:,nk),adj%Eps,dxps2)
+			if( nk .eq. pm%ni ) then
+				dxps3 = -adj%xps*(pm%B0*pm%L(1)/pm%n*4.0_mp*pi*mode/pm%L(1))*COS(4.0_mp*pi*mode*pm%r%xpdata(:,:,nk)/pm%L(1))
+			else
+				dxps3 = 0.0_mp
+			end if
+
+			call Adj_move(adj,pm,dxps1+dxps2+dxps3)
+
+			call recordAdjoint(pm%r,nk,adj%xps)
+
+			if( nk<pm%ni ) then
+				exit
+			end if
+		end do
+
+		dJdA = SUM( - pm%L(1)/pm%n*SIN( 4.0_mp*pi*mode*pm%r%xpdata(:,1,pm%ni)/pm%L(1) )*pm%r%xpsdata(:,1,pm%ni+1) )
+	end subroutine
 
 	subroutine Adj_chargeAssign(this,p,m,rhos,xps)
 		type(pmAssign), intent(inout) :: this
@@ -106,9 +165,10 @@ contains
 		end do
 	end subroutine
 
-	subroutine Adj_forceAssign_xp(this,m,Eps,xps)
+	subroutine Adj_forceAssign_xp(this,m,E,Eps,xps)
 		type(pmAssign), intent(inout) :: this
 		type(mesh), intent(in) :: m
+		real(mp), intent(in) :: E(this%ng(1),this%ng(2),this%ng(3),3)
 		real(mp), intent(in) :: Eps(this%n,3)
 		real(mp), intent(out) :: xps(this%n,3)
 		real(mp) :: frac(2,2), Epsum(this%n), Esum(this%ng(1),this%ng(2),this%ng(3))
@@ -120,18 +180,18 @@ contains
 		do i=1,this%n
 			frac = 1.0_mp/m%dx(1)*SUM( this%frac(i,:,:,:), 1 )
 			do j=1,3
-				xps(i,1) = xps(i,1) + Eps(i,j)*SUM( frac*( m%E(this%g(i,2,1), this%g(i,:,2), this%g(i,:,3), j)		&
-														- m%E(this%g(i,1,1), this%g(i,:,2), this%g(i,:,3), j) )		)
+				xps(i,1) = xps(i,1) + Eps(i,j)*SUM( frac*( E(this%g(i,2,1), this%g(i,:,2), this%g(i,:,3), j)		&
+														- E(this%g(i,1,1), this%g(i,:,2), this%g(i,:,3), j) )		)
 			end do
 			frac = 1.0_mp/m%dx(2)*SUM( this%frac(i,:,:,:), 2 )
 			do j=1,3
-				xps(i,2) = xps(i,2) + Eps(i,j)*SUM( frac*( m%E(this%g(i,:,1), this%g(i,2,2), this%g(i,:,3), j)		&
-														- m%E(this%g(i,:,1), this%g(i,1,2), this%g(i,:,3), j) )		)
+				xps(i,2) = xps(i,2) + Eps(i,j)*SUM( frac*( E(this%g(i,:,1), this%g(i,2,2), this%g(i,:,3), j)		&
+														- E(this%g(i,:,1), this%g(i,1,2), this%g(i,:,3), j) )		)
 			end do
 			frac = 1.0_mp/m%dx(3)*SUM( this%frac(i,:,:,:), 3 )
 			do j=1,3
-				xps(i,3) = xps(i,3) + Eps(i,j)*SUM( frac*( m%E(this%g(i,:,1), this%g(i,:,2), this%g(i,2,3), j)		&
-														- m%E(this%g(i,:,1), this%g(i,:,2), this%g(i,1,3), j) )		)
+				xps(i,3) = xps(i,3) + Eps(i,j)*SUM( frac*( E(this%g(i,:,1), this%g(i,:,2), this%g(i,2,3), j)		&
+														- E(this%g(i,:,1), this%g(i,:,2), this%g(i,1,3), j) )		)
 			end do
 		end do
 		xps = - xps
@@ -165,6 +225,22 @@ contains
 		call dfftw_execute_dft(plan,rhsFFT,rhosb)
 		call dfftw_destroy_plan(plan)
 		rhos = REALPART(rhosb)
+	end subroutine
+
+	subroutine Adj_accel(adj,pm,dvps)
+		type(adjoint), intent(inout) :: adj
+		type(PM3D), intent(in) :: pm
+		real(mp), intent(in) :: dvps(adj%n,3)
+
+		adj%vps = adj%vps + (-pm%dt)*( -adj%xps +dvps )
+	end subroutine
+
+	subroutine Adj_move(adj,pm,dxps)
+		type(adjoint), intent(inout) :: adj
+		type(PM3D), intent(in) :: pm
+		real(mp), intent(in) :: dxps(adj%n,3)
+
+		adj%xps = adj%xps + (-pm%dt)*( dxps )
 	end subroutine
 
 end module

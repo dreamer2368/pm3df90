@@ -42,7 +42,6 @@ contains
 		integer :: i, j, k
 		real(mp) :: rhs(this%ng(1),this%ng(2),this%ng(3))
 		real(mp) :: dt,L(3),N,B
-		real(mp) :: start, finish
 		dt = this%dt
 		L = this%L
 		N = this%n
@@ -57,13 +56,6 @@ contains
 			this%p%xp = this%p%xp + dt*this%p%vp
 
 			call assignMatrix(this%a,this%p,this%m,this%p%xp)
-
-			!Sometimes time stepping continues even though particles are assigned way outside the boundary. Even though it continues without error message, it's wrong.
-			if( MAXVAL(this%a%g)>MAXVAL(this%ng) .or. MINVAL(this%a%g)<1 ) then
-				print *, 'n= ', k, MAXVAL(this%a%g), MINVAL(this%a%g)
-				print *, 'Boundary handling is failed. particle is way outside BC. stopped time stepping.'
-				stop
-			end if
 
 			!charge assignment
 			call chargeAssign(this%a,this%p,this%m)

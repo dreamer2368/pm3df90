@@ -55,8 +55,8 @@ contains
 				elseif( xp(i,k)>=m%L(k) ) then
 					xp(i,k) = xp(i,k) - m%L(k)
 				end if
-				if( xp(i,k)<0 .or. xp(i,k)>=m%L(k) ) then
-					print *, 'FAULT!! particles are too fast : particles outside the boundary'
+				if( xp(i,k)< -m%dx(k) .or. xp(i,k)>=m%L(k) + m%dx(k) ) then
+					print *, 'FAULT!! particles outside the boundary : check if particles are too fast'
 					print *, 'xp(',i,', ',k,') =',xp(i,k)
 					stop
 				end if
