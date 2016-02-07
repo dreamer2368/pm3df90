@@ -13,9 +13,9 @@ fileID = fopen('dJdAFD.bin');
 dJdAFD = fread(fileID,20,'double');
 
 figure(1)
-loglog( dA(3:20), abs( dJdA - dJdAFD(3:20) ), '.-k', dA(3:20), .1^5*dA(3:20), '-r' );
-xlabel('$\Delta x_{2,y}$','Interpreter','Latex');
+loglog( dA, abs( dJdA - dJdAFD ), '.-k', dA, .1^1*dA, '-r' );
+xlabel('$\Delta B$','Interpreter','Latex');
 ylabel('|Adjoint - FD|');
 % axis([1e-9 1e2 1e-12 1e-4]);
-title('single time-step adjoint');
+title('2 Particles, 8 time-steps Adjoint');
 set(gca,'fontsize',25);

@@ -13,10 +13,11 @@ subroutine test_fullAdjoint(v0, Ng, Nd)
 	integer, intent(in) :: Ng(3), Nd(3)
 	type(PM3D) :: this
 	type(adjoint) :: adj
-	real(mp) :: Tf=40.0_mp,Ti=20.0_mp,rho_back
+	real(mp) :: Tf=1.6_mp,Ti=0.8_mp,rho_back
 	integer :: N
 	real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
-	real(mp) :: B0=1.0_mp, dB, dJdA
+	real(mp) :: B0=1.0_mp, dB, dJdA, fdB(20)
+	integer :: i
 
 	N = PRODUCT(Nd)
 	call buildPM3D(this,Tf,Ti,Ng,N,B=B0)
@@ -28,14 +29,27 @@ subroutine test_fullAdjoint(v0, Ng, Nd)
 
 	call backward_sweep(adj,this,dJdA)
 	print *, dJdA
+	open(unit=301,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
+	write(301) dJdA
+	close(301)
 
-	dB = this%B0*(0.1_mp)**9
-	this%B0 = this%B0 + dB
-print *, 'B = ',this%B0
-	call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-	call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
-	call QoI(adj,this,1)
-	print *, (adj%J1 - adj%J0)/dB
+	fdB = (/ ( EXP(-i*1.0_mp), i=1,20 ) /)
+	open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
+	write(301) B0*fdB
+	close(301)
+
+	open(unit=401,file='data/dJdAFD.bin',status='replace',form='unformatted',access='stream')
+	do i=1,size(fdB)
+		dB = B0*fdB(i)
+		this%B0 = B0 + dB
+		print *, 'B = ',this%B0
+		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+		call QoI(adj,this,1)
+		print *, (adj%J1 - adj%J0)/dB
+		write(401) (adj%J1 - adj%J0)/dB
+	end do
+	close(401)
 
 	call destroyAdjoint(adj)
 	call destroyPM3D(this)
