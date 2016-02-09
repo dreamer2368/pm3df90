@@ -48,7 +48,7 @@ contains
 		B = this%B0
 
 		do k = 1,this%nt
-			call recordPlasma(this%r,this%p,this%m,k)									!record for n=0~(Nt-1)
+!			call recordPlasma(this%r,this%p,this%m,k)									!record for n=0~(Nt-1) : xp_(k-1 and vp_(k-1/2)
 
 			if(k==this%ni) then
 				this%p%xp(:,1) = this%p%xp(:,1) + dt*B*L(1)/N*SIN(4.0_mp*pi*this%p%xp(:,1)/L(1)*mode)		!xp_(Ni-1) : k=Ni, xp_Ni : k=(Ni+1)
@@ -75,6 +75,8 @@ contains
 			this%p%vp(:,1) = this%p%vp(:,1) + dt*this%p%qs/this%p%ms*this%p%Ep(:,1)
 			this%p%vp(:,2) = this%p%vp(:,2) + dt*this%p%qs/this%p%ms*this%p%Ep(:,2)
 			this%p%vp(:,3) = this%p%vp(:,3) + dt*this%p%qs/this%p%ms*this%p%Ep(:,3)
+
+			call recordPlasma(this%r,this%p,this%m,k)									!record for n=1~Nt : xp_k and vp_(k+1/2)
 		end do
 	end subroutine
 
@@ -101,63 +103,7 @@ contains
 		call halfStep(this)
 		call updatePlasma(this)
 		!export the data - when needed
-		call printPlasma(this%r)
+!		call printPlasma(this%r)
 	end subroutine
-!
-!	subroutine adjoint(this,delJdelA)
-!		type(plasma), intent(inout) :: this
-!		real(mp), intent(out) :: delJdelA
-!		real(mp) :: dts
-!		real(mp) :: xps(size(this%xp)), vps(size(this%vp)), Es(size(this%E)), phis(size(this%phi))
-!		real(mp) :: dvps(size(this%vp))
-!		real(mp) :: rhs(size(this%E)), phis1(size(this%phi)-1)
-!		integer :: i,k, nk
-!		real(mp) :: coeff(this%n)
-!		dts = -dt
-!		xps = 0.0_mp
-!		vps = 0.0_mp
-!
-!		do k=1,this%nt
-!			!vps update
-!			nk = this%nt+1-k
-!			dvps = merge(2.0_mp/N/(Nt-Ni)/dt*this%vpdata(:,this%nt+1-k),0.0_mp,nk>=Ni+1)
-!			if (k==this%nt) then
-!				vps = 1.0_mp/2.0_mp*( vps + dts*( -xps + dvps ) )	!omitted 1/N/T(see QOI function)
-!			else
-!				vps = vps + dts*( -xps + dvps )
-!			end if
-!			!assignment
-!			call assignMatrix(this,this%xpdata(:,nk))
-!
-!			!Es update : (qe/me/dx)*mat*vps
-!			call vpsAssign(this,Es,vps)
-!
-!			!phis update
-!			!rhs = D*Es
-!			rhs = multiplyD(Es,dx)
-!
-!			!K*phis = D*Es
-!			call CG_K(phis1,rhs(1:Ng-1),dx)				!Conjugate-Gradient Iteration
-!			phis(1:Ng-1) = phis1
-!			phis(Ng) = 0.0_mp
-!
-!			!xps update
-!			if(nk==this%ni) then
-!				xps = xps - dts*xps*(B*L/N*4.0_mp*pi*mode/L)*COS(4.0_mp*pi*mode*this%xpdata(:,nk)/L)
-!			end if
-!			xps = xps + xpsUpdate(this,vps,phis,dts,k)
-!
-!			call recordAdjoint(this,nk,xps)					!recorde xps from n=(Nt-1) to n=0
-!			if( nk<this%ni ) then
-!				exit
-!			end if
-!		end do
-!
-!		coeff = - L/N*SIN( 4.0_mp*pi*mode*this%xpdata(:,this%ni)/L )
-!		delJdelA = 0.0_mp
-!		do i = 1,N
-!			delJdelA = delJdelA + dt*coeff(i)*this%xpsdata(i,this%ni+1)
-!		end do
-!	end subroutine
 
 end module

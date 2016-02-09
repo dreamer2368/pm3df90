@@ -66,17 +66,6 @@ contains
 !		end if
 	end subroutine
 
-!subroutine QOI(this,J)
-!type(PM3D), intent(in) :: this
-!real(mp), intent(out) :: J
-!integer :: N,Nt,Ni
-!N = this%n
-!Nt = this%nt
-!Ni = this%ni
-!
-!J = 1.0_mp/N/(Nt-Ni)*SUM(this%r%vpdata(:,:,Ni+1:Nt)**2)		!omitted 1/N/T for the sake of machine precision
-!end subroutine
-
 	subroutine backward_sweep(adj,pm, dJdA)
 		type(adjoint), intent(inout) :: adj
 		type(PM3D), intent(inout) :: pm
@@ -89,43 +78,49 @@ contains
 		do k=1,pm%nt
 			nk = pm%nt+1-k
 
+			!======= dv_p =============
 			dvps = merge(	2.0_mp/pm%n/(pm%nt-pm%ni)*pm%r%vpdata(:,:,nk),	&
 							0.0_mp,	&
 							nk >= pm%ni+1	)
 			call Adj_accel(adj,pm,dvps)
-			if( k .eq. pm%nt ) then
-				adj%vps = 0.5_mp*adj%vps
-			end if
 
+			!Check when adjoint reach to the initial step
+!			if( k .eq. pm%nt ) then
+!				adj%vps = 0.5_mp*adj%vps
+!			end if
+
+			!======= dE_p =============
 			adj%Eps(:,1) = pm%p%qs/pm%p%ms*adj%vps(:,1)
 			adj%Eps(:,2) = pm%p%qs/pm%p%ms*adj%vps(:,2)
 			adj%Eps(:,3) = pm%p%qs/pm%p%ms*adj%vps(:,3)
 
 			call assignMatrix(pm%a,pm%p,pm%m,pm%r%xpdata(:,:,nk))
 
+			!======= dE_g =============
 			call Adj_forceAssign_E(pm%a,adj%Eps,adj%Es)
 
+			!======= dPhi_g, dRho_g =============
 			call FFTAdj(adj%Es,adj%rhos,pm%m%W,pm%m%dx)
 			adj%rhos = -adj%rhos/pm%eps0
 
+			!======= dx_p =============
 			call Adj_chargeAssign(pm%a,pm%p,pm%m,adj%rhos,dxps1)
 			call Adj_forceAssign_xp(pm%a,pm%m,pm%r%Edata(:,:,:,:,nk),adj%Eps,dxps2)
-			if( nk .eq. pm%ni ) then
+			if( nk .eq. pm%ni-1 ) then
 				dxps3 = -adj%xps*(pm%B0*pm%L(1)/pm%n*4.0_mp*pi*mode/pm%L(1))*COS(4.0_mp*pi*mode*pm%r%xpdata(:,:,nk)/pm%L(1))
 			else
 				dxps3 = 0.0_mp
 			end if
-
 			call Adj_move(adj,pm,dxps1+dxps2+dxps3)
 
-			call recordAdjoint(pm%r,nk,adj%xps)
+			call recordAdjoint(pm%r,nk,adj%xps)									!record for nk=1~Nt : xps_nk and vp_(nk+1/2)
 
 			if( nk<pm%ni ) then
 				exit
 			end if
 		end do
 
-		dJdA = SUM( - pm%L(1)/pm%n*SIN( 4.0_mp*pi*mode*pm%r%xpdata(:,1,pm%ni)/pm%L(1) )*pm%r%xpsdata(:,1,pm%ni+1) )
+		dJdA = SUM( - pm%L(1)/pm%n*SIN( 4.0_mp*pi*mode*pm%r%xpdata(:,1,pm%ni-1)/pm%L(1) )*pm%r%xpsdata(:,1,pm%ni) )
 	end subroutine
 
 	subroutine Adj_chargeAssign(this,p,m,rhos,xps)
