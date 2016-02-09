@@ -2,7 +2,6 @@ module testmodule
 
 	use init
 	use timeStep
-	use modAdj
 
 	implicit none
 
@@ -27,7 +26,7 @@ subroutine test_fullAdjoint(v0, Ng, Nd)
 	call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
 	call QoI(adj,this,0)
 
-	call backward_sweep(adj,this,dJdA)
+	call backward_sweep(adj,this,dJdvp,dJdA)
 	print *, dJdA
 	open(unit=301,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
 	write(301) dJdA

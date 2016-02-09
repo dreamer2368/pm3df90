@@ -1,6 +1,7 @@
 module timeStep
 
 	use modPM3D
+	use modAdj
 
 	implicit none
 
@@ -104,6 +105,73 @@ contains
 		call updatePlasma(this)
 		!export the data - when needed
 !		call printPlasma(this%r)
+	end subroutine
+
+	subroutine backward_sweep(adj,pm, dJ, dJdA)
+		type(adjoint), intent(inout) :: adj
+		type(PM3D), intent(inout) :: pm
+		real(mp), intent(out) :: dJdA
+		real(mp), dimension(pm%n,3) :: dvps, dxps1, dxps2, dxps3
+		integer :: k, nk
+
+		interface
+			subroutine dJ(adj,pm,k)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+			end subroutine
+		end interface
+
+		adj%xps = 0.0_mp
+		adj%vps = 0.0_mp
+		do k=1,pm%nt
+			nk = pm%nt+1-k
+
+			!======= dJ : source term ==========
+			call dJ(adj,pm,nk)
+
+			!======= dv_p =============
+			call Adj_accel(adj,pm,adj%dvps)
+
+			!Check when adjoint reach to the initial step
+!			if( k .eq. pm%nt ) then
+!				adj%vps = 0.5_mp*adj%vps
+!			end if
+
+			!======= dE_p =============
+			adj%Eps(:,1) = pm%p%qs/pm%p%ms*adj%vps(:,1)
+			adj%Eps(:,2) = pm%p%qs/pm%p%ms*adj%vps(:,2)
+			adj%Eps(:,3) = pm%p%qs/pm%p%ms*adj%vps(:,3)
+
+			call assignMatrix(pm%a,pm%p,pm%m,pm%r%xpdata(:,:,nk))
+
+			!======= dE_g =============
+			call Adj_forceAssign_E(pm%a,adj%Eps,adj%Es)
+
+			!======= dPhi_g, dRho_g =============
+			call FFTAdj(adj%Es,adj%rhos,pm%m%W,pm%m%dx)
+			adj%rhos = -adj%rhos/pm%eps0
+
+			!======= dx_p =============
+			call Adj_chargeAssign(pm%a,pm%p,pm%m,adj%rhos,dxps1)
+			call Adj_forceAssign_xp(pm%a,pm%m,pm%r%Edata(:,:,:,:,nk),adj%Eps,dxps2)
+			if( nk .eq. pm%ni-1 ) then
+				dxps3 = -adj%xps*(pm%B0*pm%L(1)/pm%n*4.0_mp*pi*mode/pm%L(1))*COS(4.0_mp*pi*mode*pm%r%xpdata(:,:,nk)/pm%L(1))
+			else
+				dxps3 = 0.0_mp
+			end if
+			call Adj_move(adj,pm,dxps1+dxps2+dxps3)
+
+			call recordAdjoint(pm%r,nk,adj%xps)									!record for nk=1~Nt : xps_nk and vp_(nk+1/2)
+
+			if( nk<pm%ni ) then
+				exit
+			end if
+		end do
+
+		dJdA = SUM( - pm%L(1)/pm%n*SIN( 4.0_mp*pi*mode*pm%r%xpdata(:,1,pm%ni-1)/pm%L(1) )*pm%r%xpsdata(:,1,pm%ni) )
 	end subroutine
 
 end module

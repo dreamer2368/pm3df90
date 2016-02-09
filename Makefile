@@ -35,9 +35,9 @@ modAssign.o : modPlasma.o modMesh.o
 modRecord.o : modPlasma.o modMesh.o
 modPM3D.o : modPlasma.o modMesh.o modAssign.o modRecord.o
 modAdj.o : modPM3D.o
-timeStep.o : modPM3D.o
+timeStep.o : modPM3D.o modAdj.o
 init.o: modPM3D.o random.o
-testmodule.o : init.o timeStep.o modAdj.o
+testmodule.o : init.o timeStep.o
 main.o : testmodule.o
 
 clean:
