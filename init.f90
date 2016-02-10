@@ -53,10 +53,6 @@ contains
 		pm = (/ ( i, i=1,this%n ) /)
 		pm = 1 - 2*MOD(pm,2)
 		vp0(:,1) = vp0(:,1) + pm*v0
-
-		open(unit=301,file='data/xp0.bin',status='replace',form='unformatted',access='stream')
-		write(301) xp0
-		close(301)
 	end subroutine
 
 end module

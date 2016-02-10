@@ -103,8 +103,6 @@ contains
 		!Time stepping
 		call halfStep(this)
 		call updatePlasma(this)
-		!export the data - when needed
-!		call printPlasma(this%r)
 	end subroutine
 
 	subroutine backward_sweep(adj,pm, dJ, dJdA)
