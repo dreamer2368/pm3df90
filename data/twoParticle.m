@@ -15,8 +15,8 @@ vp = fread(fileID,N*3*Nt,'double');
 vp = reshape(vp,[N,3,Nt]);
 
 fileID = fopen('E.bin');
-E = fread(fileID,Nx*Ny*Nz*3*Nt,'double');
-E = reshape(E,[Nx,Ny,Nz,3,Nt]);
+E = fread(fileID,N*3*Nt,'double');
+E = reshape(E,[N,3,Nt]);
 
 %%
 close all
@@ -57,14 +57,28 @@ end
 %%
 close all
 
-t=16;
-dx = Lx/Nx; dt = 0.2;
-NFFT = 2^nextpow2(Nx);
-Ekhistory = [];
-for i=1:Nt
-    Ek = fft(E(:,t,t,i),NFFT)/Nx;
-    Ekhistory = [Ekhistory 2*abs(Ek(1:NFFT/2+1))];
-end
+r1 = squeeze( abs(xp(1,:,:) - xp(2,:,:)) );
+r1 = sqrt( sum( r1.^2 , 1 ) );
+time = 0.2*(1:Nt);
 
-time = (1:Nt)*dt;
-semilogy(time, Ekhistory(2,:),'-k',time,0.00001*exp(1/2/sqrt(2)*time),'-r');
+figure(2)
+plot(time,r1);
+
+r = squeeze( min( abs(xp(1,:,:) - xp(2,:,:)), Lx - abs(xp(1,:,:) - xp(2,:,:)) ) );
+r = sqrt( sum( r.^2 , 1 ) );
+figure(3)
+plot(time, r);
+
+%%
+close all
+
+time = 0.2*(1:Nt);
+KE = 0.5*squeeze( sum(sum( vp.^2, 1),2) );
+PE = 0.5*squeeze( sum(sum( E.^2, 1),2) );
+
+figure(4)
+plot(time,KE,'-r',time,PE,'-b',time,KE+PE,'-k');
+
+dEp = squeeze( sum(E,1) )/max(max(max(E)));
+figure(5)
+plot(time,dEp(3,:));

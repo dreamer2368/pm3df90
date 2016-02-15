@@ -12,13 +12,14 @@ module modRecord
 		real(mp), allocatable :: xpdata(:,:,:)
 		real(mp), allocatable :: vpdata(:,:,:)
 		real(mp), allocatable :: xpsdata(:,:,:)
+
+		real(mp), allocatable :: Epdata(:,:,:)
 		real(mp), allocatable :: Edata(:,:,:,:,:)
 	end type
 
 contains
 
 	subroutine buildRecord(this,nt,n,L,ng)
-
 		type(recordData), intent(out) :: this
 		integer, intent(in) :: nt, n, ng(3)
 		real(mp), intent(in) :: L(3)
@@ -31,6 +32,8 @@ contains
 		allocate(this%xpdata(n,3,nt))
 		allocate(this%vpdata(n,3,nt))
 		allocate(this%xpsdata(n,3,nt))
+
+		allocate(this%Epdata(n,3,nt))
 		allocate(this%Edata(ng(1),ng(2),ng(3),3,nt))
 	end subroutine
 
@@ -40,6 +43,8 @@ contains
 		deallocate(this%xpdata)
 		deallocate(this%vpdata)
 		deallocate(this%xpsdata)
+
+		deallocate(this%Epdata)
 		deallocate(this%Edata)
 	end subroutine
 
@@ -51,7 +56,8 @@ contains
 
 		this%xpdata(:,:,k) = p%xp
 		this%vpdata(:,:,k) = p%vp
-		this%Edata(:,:,:,:,k) = m%E
+		this%Epdata(:,:,k) = p%Ep
+!		this%Edata(:,:,:,:,k) = m%E
 	end subroutine
 
 	subroutine printPlasma(this)
@@ -68,9 +74,11 @@ contains
 		do i = 1,this%nt
 			write(301) this%xpdata(:,:,i)
 			write(302) this%vpdata(:,:,i)
-			write(303) this%Edata(:,:,:,1,i)
-			write(303) this%Edata(:,:,:,2,i)
-			write(303) this%Edata(:,:,:,3,i)
+
+			write(303) this%Epdata(:,:,i)
+!			write(303) this%Edata(:,:,:,1,i)
+!			write(303) this%Edata(:,:,:,2,i)
+!			write(303) this%Edata(:,:,:,3,i)
 		end do
 		close(301)
 		close(302)

@@ -1,6 +1,7 @@
 program main
 
 	use testmodule
+	use twoparticle
 
 	implicit none
 
@@ -11,11 +12,8 @@ program main
 
 	call cpu_time(start)
 
-!	call twostream(0.2_mp,(/ 64,64,64 /),(/ 2**8,2**5,2**5 /))
-!	call verify_assignment
-!	call test_FFTPoisson_adj((/ 32,32,32 /),2)
-!	call test_particle_adj2((/ 64,64,64 /),2)
-	call test_fullAdjoint(0.0_mp, (/64,64,64/), (/2**8,2**5,2**5/) )
+	call twoParticleTest(0.2_mp,(/64,64,64/))
+!	call twostream(0.2_mp,(/64,64,64/),(/2**8,2**6,2**6/))
 
 	call cpu_time(finish)
 
