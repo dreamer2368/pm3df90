@@ -76,7 +76,7 @@ contains
 			this%p%vp(:,1) = this%p%vp(:,1) + dt*this%p%qs/this%p%ms*this%p%Ep(:,1)
 			this%p%vp(:,2) = this%p%vp(:,2) + dt*this%p%qs/this%p%ms*this%p%Ep(:,2)
 			this%p%vp(:,3) = this%p%vp(:,3) + dt*this%p%qs/this%p%ms*this%p%Ep(:,3)
-
+!print *, this%p%vp
 			call recordPlasma(this%r,this%p,this%m,k)									!record for n=1~Nt : xp_k and vp_(k+1/2)
 		end do
 	end subroutine

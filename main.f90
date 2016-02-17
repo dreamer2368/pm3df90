@@ -13,7 +13,7 @@ program main
 	call cpu_time(start)
 
 	call twoParticleTest(0.2_mp,(/64,64,64/))
-!	call twostream(0.2_mp,(/64,64,64/),(/2**8,2**6,2**6/))
+!	call twostream(0.2_mp,(/64,64,64/),(/2**8,2**5,2**5/))
 
 	call cpu_time(finish)
 

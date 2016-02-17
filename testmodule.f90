@@ -12,7 +12,7 @@ contains
 		integer, intent(in) :: Ng(3), Nd(3)
 		type(PM3D) :: this
 		type(adjoint) :: adj
-		real(mp) :: Tf=40.0_mp,Ti=20.0_mp,rho_back
+		real(mp) :: Tf=1.6_mp,Ti=0.8_mp,rho_back
 		integer :: N
 		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
 		real(mp) :: B0=1.0_mp, dB, dJdA, fdB(20)

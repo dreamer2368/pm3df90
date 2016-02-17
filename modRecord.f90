@@ -15,6 +15,7 @@ module modRecord
 
 		real(mp), allocatable :: Epdata(:,:,:)
 		real(mp), allocatable :: Edata(:,:,:,:,:)
+		real(mp), allocatable :: PE(:), KE(:)
 	end type
 
 contains
@@ -35,6 +36,9 @@ contains
 
 		allocate(this%Epdata(n,3,nt))
 		allocate(this%Edata(ng(1),ng(2),ng(3),3,nt))
+
+		allocate(this%PE(nt))
+		allocate(this%KE(nt))
 	end subroutine
 
 	subroutine destroyRecord(this)
@@ -46,6 +50,9 @@ contains
 
 		deallocate(this%Epdata)
 		deallocate(this%Edata)
+
+		deallocate(this%PE)
+		deallocate(this%KE)
 	end subroutine
 
 	subroutine recordPlasma(this,p,m,k)
@@ -57,7 +64,9 @@ contains
 		this%xpdata(:,:,k) = p%xp
 		this%vpdata(:,:,k) = p%vp
 		this%Epdata(:,:,k) = p%Ep
-!		this%Edata(:,:,:,:,k) = m%E
+		this%Edata(:,:,:,:,k) = m%E
+		this%PE(k) = 0.5_mp*SUM(m%E**2)*PRODUCT(m%dx)
+		this%KE(k) = 0.5_mp*SUM(p%ms*SUM(p%vp**2,2))
 	end subroutine
 
 	subroutine printPlasma(this)
@@ -71,6 +80,8 @@ contains
 		open(unit=301,file='data/xp.bin',status='replace',form='unformatted',access='stream')
 		open(unit=302,file='data/vp.bin',status='replace',form='unformatted',access='stream')
 		open(unit=303,file='data/E.bin',status='replace',form='unformatted',access='stream')
+		open(unit=304,file='data/PE.bin',status='replace',form='unformatted',access='stream')
+		open(unit=305,file='data/KE.bin',status='replace',form='unformatted',access='stream')
 		do i = 1,this%nt
 			write(301) this%xpdata(:,:,i)
 			write(302) this%vpdata(:,:,i)
@@ -79,10 +90,14 @@ contains
 !			write(303) this%Edata(:,:,:,1,i)
 !			write(303) this%Edata(:,:,:,2,i)
 !			write(303) this%Edata(:,:,:,3,i)
+			write(304) this%PE(i)
+			write(305) this%KE(i)
 		end do
 		close(301)
 		close(302)
 		close(303)
+		close(304)
+		close(305)
 	end subroutine
 
 	subroutine recordAdjoint(this,k,xps)
