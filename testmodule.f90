@@ -23,7 +23,7 @@ contains
 		call buildAdjoint(adj,this)
 
 		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-		call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
 		call QoI(adj,this,0)
 
 		call backward_sweep(adj,this,dJdvp,dJdA)
@@ -43,7 +43,7 @@ contains
 			this%B0 = B0 + dB
 			print *, 'B = ',this%B0
 			call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-			call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+			call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
 			call QoI(adj,this,1)
 			print *, (adj%J1 - adj%J0)/dB
 			write(401) (adj%J1 - adj%J0)/dB
@@ -278,7 +278,7 @@ contains
 		call buildPM3D(this,Tf,Ti,Ng,N)
 
 		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-		call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
 		call printPlasma(this%r)
 
 		call destroyPM3D(this)

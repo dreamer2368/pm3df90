@@ -43,7 +43,7 @@ contains
 			this%B0 = B0
 
 			call twoParticleInit(this,v0,xp0,vp0,qs,ms,rho_back)
-			call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+			call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
 !			call printPlasma(this%r)
 			call QoI(adj,this,0)
 
@@ -56,7 +56,7 @@ contains
 				this%B0 = B0 + dB
 				print *, 'B = ',this%B0
 				call twoParticleInit(this,v0,xp0,vp0,qs,ms,rho_back)
-				call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+				call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
 				call QoI(adj,this,1)
 				print *, (adj%J1 - adj%J0)/dB
 
@@ -96,7 +96,7 @@ contains
 		this%B0 = 0.1_mp*this%L(1)
 
 		call twoParticleInit(this,v0,xp0,vp0,qs,ms,rho_back)
-		call forwardsweep(this,xp0,vp0,qs,ms,rho_back)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
 		call printPlasma(this%r)
 
 		call destroyAdjoint(adj)
