@@ -12,7 +12,8 @@ program main
 
 	call cpu_time(start)
 
-	call twoParticleTest(0.2_mp,(/64,64,64/))
+	call twoParticleAdjTest(1.0_mp,(/64,64,64/))
+!	call twoParticleTraj(1.0_mp,(/64,64,64/))
 !	call twostream(0.2_mp,(/64,64,64/),(/2**8,2**5,2**5/))
 
 	call cpu_time(finish)

@@ -23,9 +23,10 @@ contains
 
 		!field equation rhs
 		rhs = -this%m%rho/this%eps0
+
 		!solve field equation
 		call FFTPoisson(this%m%phi,rhs,this%m%W)				!FFT-based Poisson solver
-!
+
 !		!Electric field : -D*phi
 		this%m%E = - Gradient(this%m%phi,this%m%dx, this%ng)
 
@@ -76,7 +77,7 @@ contains
 			this%p%vp(:,1) = this%p%vp(:,1) + dt*this%p%qs/this%p%ms*this%p%Ep(:,1)
 			this%p%vp(:,2) = this%p%vp(:,2) + dt*this%p%qs/this%p%ms*this%p%Ep(:,2)
 			this%p%vp(:,3) = this%p%vp(:,3) + dt*this%p%qs/this%p%ms*this%p%Ep(:,3)
-!print *, this%p%vp
+
 			call recordPlasma(this%r,this%p,this%m,k)									!record for n=1~Nt : xp_k and vp_(k+1/2)
 		end do
 	end subroutine
@@ -133,9 +134,9 @@ contains
 			!======= dv_p =============
 			call Adj_accel(adj,pm,adj%dvps)
 
-			!Check when adjoint reach to the initial step
+!			!Check when adjoint reach to the initial step
 !			if( k .eq. pm%nt ) then
-!				adj%vps = 0.5_mp*adj%vps
+!				adj%vps = 2.0_mp*adj%vps
 !			end if
 
 			!======= dE_p =============
