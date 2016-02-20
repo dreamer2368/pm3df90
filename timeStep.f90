@@ -1,6 +1,7 @@
 module timeStep
 
 	use modQoI
+	use modSource
 
 	implicit none
 
@@ -113,19 +114,6 @@ contains
 		call recordPlasma(this%r,this%p,this%m,k)									!record for n=1~Nt : xp_k and vp_(k+1/2)
 	end subroutine
 
-	subroutine Forcing(this,k,str)
-		type(PM3D), intent(inout) :: this
-		integer, intent(in) :: k
-		character(len=*), intent(in) :: str
-
-		SELECT CASE (str)
-			CASE('xp')
-				if(k==this%ni) then
-					this%p%xp(:,1) = this%p%xp(:,1) + this%dt*this%B0*this%L(1)/this%n*SIN(4.0_mp*pi*this%p%xp(:,1)/this%L(1)*mode)		!xp_(Ni-1) : k=Ni, xp_Ni : k=(Ni+1)
-				end if
-		END SELECT
-	end subroutine
-
 	subroutine QOItwo(this,A,B,J)
 		type(PM3D), intent(in) :: this
 		integer, intent(in) :: A, B
@@ -138,10 +126,9 @@ contains
 
 !===================Adjoint time stepping==========================
 
-	subroutine backward_sweep(adj,pm, dJ, Dsource, dJdA)
+	subroutine backward_sweep(adj,pm, dJ, Dsource)
 		type(adjoint), intent(inout) :: adj
 		type(PM3D), intent(inout) :: pm
-		real(mp), intent(out) :: dJdA
 		integer :: k, nk
 		interface
 			subroutine dJ(adj,pm,k)
@@ -203,27 +190,7 @@ contains
 			call Adj_move(adj,pm,adj%dxps)
 
 			call recordAdjoint(pm%r,nk,adj%xps)									!record for nk=1~Nt : xps_nk and vp_(nk+1/2)
-
-			if( nk<pm%ni ) then
-				exit
-			end if
 		end do
-
-		dJdA = SUM( - pm%L(1)/pm%n*SIN( 4.0_mp*pi*mode*pm%r%xpdata(:,1,pm%ni-1)/pm%L(1) )*pm%r%xpsdata(:,1,pm%ni) )
-	end subroutine
-
-	subroutine Dforcing(adj,pm,k,str)
-		type(adjoint), intent(inout) :: adj
-		type(PM3D), intent(in) :: pm
-		integer, intent(in) :: k
-		character(len=*), intent(in) :: str
-
-		select case (str)
-			case ('xp')
-				if( k .eq. pm%ni-1 ) then
-					adj%dxps = adj%dxps - adj%xps*(pm%B0*pm%L(1)/pm%n*4.0_mp*pi*mode/pm%L(1))*COS(4.0_mp*pi*mode*pm%r%xpdata(:,:,k)/pm%L(1))
-				end if
-		end select
 	end subroutine
 
 end module

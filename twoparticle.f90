@@ -7,7 +7,7 @@ module twoparticle
 
 contains
 
-	subroutine twoParticleAdjTest(v0, Ng,QoI,dQoI)
+	subroutine twoParticleAdjTest(v0, Ng,QoI,dQoI,source,Dsource,dQoI_dsource)
 		real(mp), intent(in) :: v0
 		integer, intent(in) :: Ng(3)
 		type(PM3D) :: this
@@ -36,7 +36,34 @@ contains
 				integer, intent(in) :: k
 			end subroutine
 		end interface
-
+		interface
+			subroutine source(pm,k,str)
+				use modPM3D
+				type(PM3D), intent(inout) :: pm
+				integer, intent(in) :: k
+				character(len=*), intent(in) :: str
+			end subroutine
+		end interface
+		interface
+			subroutine Dsource(adj,pm,k,str)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+				character(len=*), intent(in) :: str
+			end subroutine
+		end interface
+		interface
+			subroutine dQoI_dsource(adj,pm,dJdA)
+				use modPM3D
+				use modAdj
+				use constants
+				type(adjoint), intent(in) :: adj
+				type(PM3D), intent(in) :: pm
+				real(mp), intent(out) :: dJdA
+			end subroutine
+		end interface
 		wp = 1.0_mp
 		Tp = 2.0_mp*pi/wp
 		eps0 = 1.0_mp
@@ -61,11 +88,12 @@ contains
 			this%B0 = B0
 
 			call twoParticleInit(this,v0,xp0,vp0,qs,ms,rho_back)
-			call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
+			call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
 !			call printPlasma(this%r)
 			call QoI(adj,this,0)
 
-			call backward_sweep(adj,this,dQoI,Dforcing,dJdA)
+			call backward_sweep(adj,this,dQoI,Dsource)
+			call dQoI_dsource(adj,this,dJdA)
 			print *, dJdA
 			write(402) dJdA
 
@@ -74,7 +102,7 @@ contains
 				this%B0 = B0 + dB
 				print *, 'B = ',this%B0
 				call twoParticleInit(this,v0,xp0,vp0,qs,ms,rho_back)
-				call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
+				call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
 				call QoI(adj,this,1)
 				print *, (adj%J1 - adj%J0)/dB
 
@@ -114,7 +142,7 @@ contains
 		this%B0 = 0.1_mp*this%L(1)
 
 		call twoParticleInit(this,v0,xp0,vp0,qs,ms,rho_back)
-		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,IC_wave)
 		call printPlasma(this%r)
 
 		call destroyAdjoint(adj)

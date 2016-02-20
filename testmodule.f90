@@ -7,7 +7,7 @@ module testmodule
 
 contains
 
-	subroutine test_fullAdjoint(v0, Ng, Nd,QoI,dQoI)
+	subroutine test_fullAdjoint(v0, Ng, Nd,QoI,dQoI,source,Dsource,dQoI_dsource)
 		real(mp), intent(in) :: v0
 		integer, intent(in) :: Ng(3), Nd(3)
 		type(PM3D) :: this
@@ -35,16 +35,45 @@ contains
 				integer, intent(in) :: k
 			end subroutine
 		end interface
+		interface
+			subroutine source(pm,k,str)
+				use modPM3D
+				type(PM3D), intent(inout) :: pm
+				integer, intent(in) :: k
+				character(len=*), intent(in) :: str
+			end subroutine
+		end interface
+		interface
+			subroutine Dsource(adj,pm,k,str)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+				character(len=*), intent(in) :: str
+			end subroutine
+		end interface
+		interface
+			subroutine dQoI_dsource(adj,pm,dJdA)
+				use modPM3D
+				use modAdj
+				use constants
+				type(adjoint), intent(in) :: adj
+				type(PM3D), intent(in) :: pm
+				real(mp), intent(out) :: dJdA
+			end subroutine
+		end interface
 
 		N = PRODUCT(Nd)
 		call buildPM3D(this,Tf,Ti,Ng,N,B=B0)
 		call buildAdjoint(adj,this)
 
 		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
 		call QoI(adj,this,0)
 
-		call backward_sweep(adj,this,dQoI,Dforcing,dJdA)
+		call backward_sweep(adj,this,dQoI,Dsource)
+		call dQoI_dsource(adj,this,dJdA)
 		print *, dJdA
 		open(unit=301,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
 		write(301) dJdA
@@ -61,7 +90,7 @@ contains
 			this%B0 = B0 + dB
 			print *, 'B = ',this%B0
 			call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-			call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
+			call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
 			call QoI(adj,this,1)
 			print *, (adj%J1 - adj%J0)/dB
 			write(401) (adj%J1 - adj%J0)/dB
@@ -308,7 +337,7 @@ contains
 		call buildPM3D(this,Tf,Ti,Ng,N)
 
 		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,IC_wave)
 		call printPlasma(this%r)
 
 		call destroyPM3D(this)
