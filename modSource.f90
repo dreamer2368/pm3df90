@@ -43,4 +43,38 @@ contains
 		dJdA = SUM( - pm%L(1)/pm%n*SIN( 4.0_mp*pi*mode*pm%r%xpdata(:,1,pm%ni-1)/pm%L(1) )*pm%r%xpsdata(:,1,pm%ni) )
 	end subroutine
 
+!================Two Particle Orbit radius===========================
+
+	subroutine Orbit_radius(pm,k,str)
+		type(PM3D), intent(inout) :: pm
+		integer, intent(in) :: k
+		character(len=*), intent(in) :: str
+
+		select case (str)
+			case('xp')
+				if( k.eq.2 ) then
+					pm%p%xp(1,1) = pm%p%xp(1,1) - pm%B0*0.5_mp*(pm%p%xp(2,1)-pm%p%xp(1,1))
+					pm%p%xp(2,1) = pm%p%xp(2,1) + pm%B0*0.5_mp*(pm%p%xp(2,1)-pm%p%xp(1,1))
+				end if
+		end select
+	end subroutine
+
+	subroutine dOrbit(adj,pm,k,str)
+		type(adjoint), intent(inout) :: adj
+		type(PM3D), intent(in) :: pm
+		integer, intent(in) :: k
+		character(len=*), intent(in) :: str
+
+	end subroutine
+
+	subroutine dOrbit_dB(adj,pm,dJdA)
+		type(adjoint), intent(in) :: adj
+		type(PM3D), intent(in) :: pm
+		real(mp), intent(out) :: dJdA
+		real(mp) :: r0
+
+		r0 = pm%r%xpdata(2,1,1) - pm%r%xpdata(1,1,1)
+		dJdA = - ( -0.5_mp*r0*pm%r%xpsdata(1,1,2) + 0.5_mp*r0*pm%r%xpsdata(2,1,2) )/pm%dt
+	end subroutine
+
 end module
