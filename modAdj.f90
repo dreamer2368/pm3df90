@@ -8,7 +8,7 @@ module modAdj
 		integer :: nt, ni, n, ng(3)
 		real(mp) :: J0, J1
 		real(mp), allocatable :: xps(:,:), vps(:,:), Eps(:,:), Es(:,:,:,:), rhos(:,:,:)
-		real(mp), allocatable :: dvps(:,:)
+		real(mp), allocatable :: dvps(:,:), dxps(:,:)
 	end type
 
 contains
@@ -29,6 +29,7 @@ contains
 		allocate(this%rhos(this%ng(1),this%ng(2),this%ng(3)))
 
 		allocate(this%dvps(this%n,3))
+		allocate(this%dxps(this%n,3))
 	end subroutine
 
 	subroutine destroyAdjoint(this)
@@ -41,45 +42,14 @@ contains
 		deallocate(this%rhos)
 
 		deallocate(this%dvps)
+		deallocate(this%dxps)
 	end subroutine
 
-	subroutine QoI(this,pm,i)
-		type(adjoint), intent(inout) :: this
-		type(PM3D), intent(in) :: pm
-		integer, intent(in), optional :: i
-		integer :: input
-		if( present(i) ) then
-			input = i
-		else
-			input = 0
-		end if
-
-		if( input.eq.0 ) then
-			this%J0 = 1.0_mp/pm%n/(pm%nt-pm%ni)*SUM( pm%r%vpdata(:,:,pm%ni+1:pm%nt)**2 )
-			print *, 'J0 = ', this%J0
-		elseif( input.eq.1 ) then
-			this%J1 = 1.0_mp/pm%n/(pm%nt-pm%ni)*SUM( pm%r%vpdata(:,:,pm%ni+1:pm%nt)**2 )
-			print *, 'J1 = ', this%J1
-		end if
-		!For testmodule
-!		if( input.eq.0 ) then
-!			this%J0 = SUM( (pm%p%vp(:,1)**2 + pm%p%vp(:,2)**2 + pm%p%vp(:,3)**2) )
-!			print *, 'J0 = ', this%J0
-!		elseif( input.eq.1 ) then
-!			this%J1 = SUM( (pm%p%vp(:,1)**2 + pm%p%vp(:,2)**2 + pm%p%vp(:,3)**2) )
-!			print *, 'J1 = ', this%J1
-!		end if
-	end subroutine
-
-	subroutine dJdvp(adj,pm,k)
+	subroutine reset_Dadj(adj)
 		type(adjoint), intent(inout) :: adj
-		type(PM3D), intent(in) :: pm
-		integer, intent(in) :: k
 
 		adj%dvps = 0.0_mp
-		if( k >= pm%ni+1 ) then
-			adj%dvps = 2.0_mp/pm%n/(pm%nt-pm%ni)*pm%r%vpdata(:,:,k)
-		end if
+		adj%dxps = 0.0_mp
 	end subroutine
 
 	subroutine Adj_chargeAssign(this,p,m,rhos,xps)
@@ -88,20 +58,22 @@ contains
 		type(mesh), intent(in) :: m
 		real(mp), intent(in) :: rhos(this%ng(1),this%ng(2),this%ng(3))
 		real(mp), intent(out) :: xps(this%n,3)
+		real(mp) :: dxps(this%n,3)
 		real(mp) :: dV
 		integer :: i
 
 		dV = PRODUCT(m%dx)
-		xps = 0.0_mp
+		dxps = 0.0_mp
 		do i=1,this%n
-			xps(i,1) = 1.0_mp/m%dx(1)*SUM( SUM( this%frac(i,:,:,:), 1)*rhos( this%g(i,2,1), this%g(i,:,2), this%g(i,:,3) )	&
+			dxps(i,1) = 1.0_mp/m%dx(1)*SUM( SUM( this%frac(i,:,:,:), 1)*rhos( this%g(i,2,1), this%g(i,:,2), this%g(i,:,3) )	&
 											- SUM( this%frac(i,:,:,:), 1)*rhos( this%g(i,1,1), this%g(i,:,2), this%g(i,:,3) ) )
-			xps(i,2) = 1.0_mp/m%dx(2)*SUM( SUM( this%frac(i,:,:,:), 2)*rhos( this%g(i,:,1), this%g(i,2,2), this%g(i,:,3) )	&
+			dxps(i,2) = 1.0_mp/m%dx(2)*SUM( SUM( this%frac(i,:,:,:), 2)*rhos( this%g(i,:,1), this%g(i,2,2), this%g(i,:,3) )	&
 											- SUM( this%frac(i,:,:,:), 2)*rhos( this%g(i,:,1), this%g(i,1,2), this%g(i,:,3) ) )
-			xps(i,3) = 1.0_mp/m%dx(3)*SUM( SUM( this%frac(i,:,:,:), 3)*rhos( this%g(i,:,1), this%g(i,:,2), this%g(i,2,3) )	&
+			dxps(i,3) = 1.0_mp/m%dx(3)*SUM( SUM( this%frac(i,:,:,:), 3)*rhos( this%g(i,:,1), this%g(i,:,2), this%g(i,2,3) )	&
 											- SUM( this%frac(i,:,:,:), 3)*rhos( this%g(i,:,1), this%g(i,:,2), this%g(i,1,3) ) )
-			xps(i,:) = - p%qs(i)/dV*xps(i,:)
+			dxps(i,:) = - p%qs(i)/dV*dxps(i,:)
 		end do
+		xps = xps + dxps
 	end subroutine
 
 	subroutine Adj_forceAssign_E(this,Eps,Es)
@@ -125,30 +97,33 @@ contains
 		real(mp), intent(in) :: E(this%ng(1),this%ng(2),this%ng(3),3)
 		real(mp), intent(in) :: Eps(this%n,3)
 		real(mp), intent(out) :: xps(this%n,3)
+		real(mp) :: dxps(this%n,3)
 		real(mp) :: frac(2,2), Epsum(this%n), Esum(this%ng(1),this%ng(2),this%ng(3))
 		integer :: i,j
 
-		xps = 0.0_mp
+		dxps = 0.0_mp
 		frac = 0.0_mp
 		!sum : sum in each direction --- this rank will be added by the gradient of assignment
 		do i=1,this%n
 			frac = 1.0_mp/m%dx(1)*SUM( this%frac(i,:,:,:), 1 )
 			do j=1,3
-				xps(i,1) = xps(i,1) + Eps(i,j)*SUM( frac*( E(this%g(i,2,1), this%g(i,:,2), this%g(i,:,3), j)		&
+				dxps(i,1) = dxps(i,1) + Eps(i,j)*SUM( frac*( E(this%g(i,2,1), this%g(i,:,2), this%g(i,:,3), j)		&
 														- E(this%g(i,1,1), this%g(i,:,2), this%g(i,:,3), j) )		)
 			end do
 			frac = 1.0_mp/m%dx(2)*SUM( this%frac(i,:,:,:), 2 )
 			do j=1,3
-				xps(i,2) = xps(i,2) + Eps(i,j)*SUM( frac*( E(this%g(i,:,1), this%g(i,2,2), this%g(i,:,3), j)		&
+				dxps(i,2) = dxps(i,2) + Eps(i,j)*SUM( frac*( E(this%g(i,:,1), this%g(i,2,2), this%g(i,:,3), j)		&
 														- E(this%g(i,:,1), this%g(i,1,2), this%g(i,:,3), j) )		)
 			end do
 			frac = 1.0_mp/m%dx(3)*SUM( this%frac(i,:,:,:), 3 )
 			do j=1,3
-				xps(i,3) = xps(i,3) + Eps(i,j)*SUM( frac*( E(this%g(i,:,1), this%g(i,:,2), this%g(i,2,3), j)		&
+				dxps(i,3) = dxps(i,3) + Eps(i,j)*SUM( frac*( E(this%g(i,:,1), this%g(i,:,2), this%g(i,2,3), j)		&
 														- E(this%g(i,:,1), this%g(i,:,2), this%g(i,1,3), j) )		)
 			end do
 		end do
-		xps = - xps
+		dxps = - dxps
+
+		xps = xps + dxps
 	end subroutine
 
 	subroutine FFTAdj(Es,rhos,W,dx)

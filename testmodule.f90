@@ -7,7 +7,7 @@ module testmodule
 
 contains
 
-	subroutine test_fullAdjoint(v0, Ng, Nd)
+	subroutine test_fullAdjoint(v0, Ng, Nd,QoI,dQoI)
 		real(mp), intent(in) :: v0
 		integer, intent(in) :: Ng(3), Nd(3)
 		type(PM3D) :: this
@@ -17,6 +17,24 @@ contains
 		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
 		real(mp) :: B0=1.0_mp, dB, dJdA, fdB(20)
 		integer :: i
+		interface
+			subroutine QoI(adj,pm,i)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in), optional :: i
+			end subroutine
+		end interface
+		interface
+			subroutine dQoI(adj,pm,k)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+			end subroutine
+		end interface
 
 		N = PRODUCT(Nd)
 		call buildPM3D(this,Tf,Ti,Ng,N,B=B0)
@@ -26,7 +44,7 @@ contains
 		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Forcing)
 		call QoI(adj,this,0)
 
-		call backward_sweep(adj,this,dJdvp,dJdA)
+		call backward_sweep(adj,this,dQoI,Dforcing,dJdA)
 		print *, dJdA
 		open(unit=301,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
 		write(301) dJdA
@@ -54,7 +72,7 @@ contains
 		call destroyPM3D(this)
 	end subroutine
 
-	subroutine test_particle_adj2(N,Np)
+	subroutine test_particle_adj2(N,Np,QoI)
 		integer, intent(in) :: N(3)										!!grid number
 		integer, intent(in) :: Np										!!number of particles
 		type(PM3D) :: pm
@@ -71,6 +89,16 @@ contains
 		real(mp) :: J0,J1,dJdxp(Np,3)
 		real(mp) :: fxp(20)
 		integer :: i,j,k(2)
+
+		interface
+			subroutine QoI(adj,pm,i)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in), optional :: i
+			end subroutine
+		end interface
 
 		call buildPM3D(pm,Tf,Ti,N,Np,L=L)
 		call buildAdjoint(adj,pm)
@@ -119,6 +147,8 @@ contains
 		call FFTAdj(adj%Es,adj%rhos,pm%m%W,pm%m%dx)
 		adj%rhos = -adj%rhos/pm%eps0
 
+		dxps1 = 0.0_mp
+		dxps2 = 0.0_mp
 		call Adj_chargeAssign(pm%a,pm%p,pm%m,adj%rhos,dxps1)
 		call Adj_forceAssign_xp(pm%a,pm%m,pm%m%E,adj%Eps,dxps2)
 		adj%xps = - pm%dt*( dxps1 + dxps2 )

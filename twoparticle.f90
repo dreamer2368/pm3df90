@@ -7,24 +7,42 @@ module twoparticle
 
 contains
 
-	subroutine twoParticleAdjTest(v0, Ng)
+	subroutine twoParticleAdjTest(v0, Ng,QoI,dQoI)
 		real(mp), intent(in) :: v0
 		integer, intent(in) :: Ng(3)
 		type(PM3D) :: this
 		type(adjoint) :: adj
-		real(mp) :: wp,eps0,Ti=0.0_mp,Tp,rho_back,dt
+		real(mp) :: wp,eps0,Ti=30.0_mp,Tp,rho_back,dt
 		real(mp) :: Tf(6)
 		integer, parameter :: N = 2
 		real(mp) :: xp0(N,3), vp0(N,3), qs(N), ms(N)
 		real(mp) :: B0=1.0_mp, dB, dJdA, fdB(20), ek(20)
 		integer :: i,j
+		interface
+			subroutine QoI(adj,pm,i)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in), optional :: i
+			end subroutine
+		end interface
+		interface
+			subroutine dQoI(adj,pm,k)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+			end subroutine
+		end interface
 
 		wp = 1.0_mp
 		Tp = 2.0_mp*pi/wp
 		eps0 = 1.0_mp
-		dt = 0.05_mp
+		dt = 0.2_mp
 
-		Tf = Ti + Tp*(/ 0.1_mp/pi, 1.0_mp, 2.0_mp, 4.0_mp, 10.0_mp, 20.0_mp /)
+		Tf = Ti + Tp*(/ 0.5_mp/pi, 1.0_mp, 2.0_mp, 4.0_mp, 10.0_mp, 20.0_mp /)
 		fdB = (/ ( EXP(-i*1.0_mp), i=1,20 ) /)
 		open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
 		write(301) B0*fdB
@@ -47,7 +65,7 @@ contains
 !			call printPlasma(this%r)
 			call QoI(adj,this,0)
 
-			call backward_sweep(adj,this,dJdvp,dJdA)
+			call backward_sweep(adj,this,dQoI,Dforcing,dJdA)
 			print *, dJdA
 			write(402) dJdA
 
@@ -122,33 +140,33 @@ contains
 		me = -qe
 
 		!Repulsive particles
-!		qs = qe
-!		ms = me
-!		rho_back = -qe*this%n/PRODUCT(L)
-!
-!!		xp0(1,:) = this%m%dx*( 0.5_mp + 32.0_mp )
-!!		xp0(2,:) = this%m%dx*( 0.5_mp + 32.0_mp )
-!		xp0(1,:) = 0.5_mp*this%L
-!		xp0(2,:) = 0.5_mp*this%L
-!		xp0(1,1) = xp0(1,1) - 0.25_mp*this%L(1)
-!		xp0(2,1) = xp0(2,1) + 0.25_mp*this%L(1)
-!		vp0(1,:) = v0*(/ 1.0_mp, 0.0_mp, 0.0_mp /)
-!		vp0(2,:) = -vp0(1,:)
+		qs = qe
+		ms = me
+		rho_back = -qe*this%n/PRODUCT(L)
+
+!		xp0(1,:) = this%m%dx*( 0.5_mp + 32.0_mp )
+!		xp0(2,:) = this%m%dx*( 0.5_mp + 32.0_mp )
+		xp0(1,:) = 0.5_mp*this%L
+		xp0(2,:) = 0.5_mp*this%L
+		xp0(1,1) = xp0(1,1) - 0.25_mp*this%L(1)
+		xp0(2,1) = xp0(2,1) + 0.25_mp*this%L(1)
+		vp0(1,:) = v0*(/ 1.0_mp, 0.0_mp, 0.0_mp /)
+		vp0(2,:) = -vp0(1,:)
 
 		!Attractive particles
-		qs(1) = qe
-		qs(2) = -qe
-		rho_back = 0.0_mp
-		ms = me
-
-		r0 = this%B0
-
-		xp0(1,:) = this%m%dx*( 0.5_mp + 32.0_mp )
-		xp0(2,:) = this%m%dx*( 0.5_mp + 32.0_mp )
-		xp0(1,1) = xp0(1,1) - 0.5_mp*r0
-		xp0(2,1) = xp0(2,1) + 0.5_mp*r0
-		vp0(1,:) = v0*(/ 0.0_mp, 1.0_mp, 0.0_mp /)
-		vp0(2,:) = -vp0(1,:)
+!		qs(1) = qe
+!		qs(2) = -qe
+!		rho_back = 0.0_mp
+!		ms = me
+!
+!		r0 = this%B0
+!
+!		xp0(1,:) = this%m%dx*( 0.5_mp + 32.0_mp )
+!		xp0(2,:) = this%m%dx*( 0.5_mp + 32.0_mp )
+!		xp0(1,1) = xp0(1,1) - 0.5_mp*r0
+!		xp0(2,1) = xp0(2,1) + 0.5_mp*r0
+!		vp0(1,:) = v0*(/ 0.0_mp, 1.0_mp, 0.0_mp /)
+!		vp0(2,:) = -vp0(1,:)
 
 !		print *, '======Charges======'
 !		print *, 'particle 1 : ', qs(1)

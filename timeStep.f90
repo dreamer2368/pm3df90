@@ -1,7 +1,6 @@
 module timeStep
 
-	use modPM3D
-	use modAdj
+	use modQoI
 
 	implicit none
 
@@ -139,13 +138,11 @@ contains
 
 !===================Adjoint time stepping==========================
 
-	subroutine backward_sweep(adj,pm, dJ, dJdA)
+	subroutine backward_sweep(adj,pm, dJ, Dsource, dJdA)
 		type(adjoint), intent(inout) :: adj
 		type(PM3D), intent(inout) :: pm
 		real(mp), intent(out) :: dJdA
-		real(mp), dimension(pm%n,3) :: dvps, dxps1, dxps2, dxps3
 		integer :: k, nk
-
 		interface
 			subroutine dJ(adj,pm,k)
 				use modPM3D
@@ -155,16 +152,29 @@ contains
 				integer, intent(in) :: k
 			end subroutine
 		end interface
+		interface
+			subroutine Dsource(adj,pm,k,str)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+				character(len=*), intent(in) :: str
+			end subroutine
+		end interface
 
 		adj%xps = 0.0_mp
 		adj%vps = 0.0_mp
 		do k=1,pm%nt
 			nk = pm%nt+1-k
 
+			call reset_Dadj(adj)
+
 			!======= dJ : source term ==========
 			call dJ(adj,pm,nk)
 
 			!======= dv_p =============
+			call Dsource(adj,pm,nk,'vp')
 			call Adj_accel(adj,pm,adj%dvps)
 
 !			!Check when adjoint reach to the initial step
@@ -187,14 +197,10 @@ contains
 			adj%rhos = -adj%rhos/pm%eps0
 
 			!======= dx_p =============
-			call Adj_chargeAssign(pm%a,pm%p,pm%m,adj%rhos,dxps1)
-			call Adj_forceAssign_xp(pm%a,pm%m,pm%r%Edata(:,:,:,:,nk),adj%Eps,dxps2)
-			if( nk .eq. pm%ni-1 ) then
-				dxps3 = -adj%xps*(pm%B0*pm%L(1)/pm%n*4.0_mp*pi*mode/pm%L(1))*COS(4.0_mp*pi*mode*pm%r%xpdata(:,:,nk)/pm%L(1))
-			else
-				dxps3 = 0.0_mp
-			end if
-			call Adj_move(adj,pm,dxps1+dxps2+dxps3)
+			call Adj_chargeAssign(pm%a,pm%p,pm%m,adj%rhos,adj%dxps)
+			call Adj_forceAssign_xp(pm%a,pm%m,pm%r%Edata(:,:,:,:,nk),adj%Eps,adj%dxps)
+			call Dsource(adj,pm,nk,'xp')
+			call Adj_move(adj,pm,adj%dxps)
 
 			call recordAdjoint(pm%r,nk,adj%xps)									!record for nk=1~Nt : xps_nk and vp_(nk+1/2)
 
@@ -204,6 +210,20 @@ contains
 		end do
 
 		dJdA = SUM( - pm%L(1)/pm%n*SIN( 4.0_mp*pi*mode*pm%r%xpdata(:,1,pm%ni-1)/pm%L(1) )*pm%r%xpsdata(:,1,pm%ni) )
+	end subroutine
+
+	subroutine Dforcing(adj,pm,k,str)
+		type(adjoint), intent(inout) :: adj
+		type(PM3D), intent(in) :: pm
+		integer, intent(in) :: k
+		character(len=*), intent(in) :: str
+
+		select case (str)
+			case ('xp')
+				if( k .eq. pm%ni-1 ) then
+					adj%dxps = adj%dxps - adj%xps*(pm%B0*pm%L(1)/pm%n*4.0_mp*pi*mode/pm%L(1))*COS(4.0_mp*pi*mode*pm%r%xpdata(:,:,k)/pm%L(1))
+				end if
+		end select
 	end subroutine
 
 end module
