@@ -12,7 +12,8 @@ contains
 		integer :: i
 
 		do i = 1,N
-			x(i) = SQRT(-2.0_mp*LOG(RAND()))*COS(2.0_mp*pi*RAND())
+!			x(i) = SQRT(-2.0_mp*LOG(RAND()))*COS(2.0_mp*pi*RAND())
+			x(i) = random_normal()
 		end do
 	end function
 

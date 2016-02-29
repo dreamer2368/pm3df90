@@ -125,7 +125,7 @@ contains
 		real(mp) :: Tf(6)
 		integer, parameter :: N = 2
 		real(mp) :: xp0(N,3), vp0(N,3), qs(N), ms(N)
-		real(mp) :: A0, B0=0.0_mp, dJdA, fdB(20), ek(20)
+		real(mp) :: A0, B0=0.0_mp, dJdA, fdB(26), ek(26)
 		integer :: i,j
 		interface
 			subroutine QoI(adj,pm,i)
@@ -176,12 +176,12 @@ contains
 		wp = 1.0_mp
 		Tp = 2.0_mp*pi/wp
 		eps0 = 1.0_mp
-		dt = 0.05_mp
+		dt = 0.01_mp
 
 		Tf = Ti + Tp*(/ 0.5_mp/pi, 1.0_mp, 2.0_mp, 4.0_mp, 10.0_mp, 20.0_mp /)
-		fdB = (/ ( EXP(-i*1.0_mp), i=1,20 ) /)
+		fdB = (/ ( EXP(-i*1.0_mp), i=1,26 ) /)
 		open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
-		write(301) B0*fdB
+		write(301) fdB
 		close(301)
 
 		open(unit=401,file='data/ek.bin',status='replace',form='unformatted',access='stream')
@@ -190,7 +190,8 @@ contains
 			call buildPM3D(this,Tf(i),Ti,Ng,N,dt=dt,B=B0)
 			call buildAdjoint(adj,this)
 
-			A0 = 0.1_mp*this%L(1)
+!			A0 = 0.1_mp*this%L(1)
+			A0 = 0.9_mp*this%m%dx(1)
 			this%A0 = A0
 
 			call twoParticleInit(this,v0,xp0,vp0,qs,ms,rho_back)
@@ -239,15 +240,28 @@ contains
 		Tp = 2.0_mp*pi/wp
 		eps0 = 1.0_mp
 
-		Tf = Ti + Tp*20.0_mp
+		Tf = Ti + Tp*10.0_mp
 
-		call buildPM3D(this,Tf,Ti,Ng,N,dt=0.05_mp,B=B0)
+		call buildPM3D(this,Tf,Ti,Ng,N,dt=0.01_mp,B=B0)
 		call buildAdjoint(adj,this)
 
-		this%B0 = 0.1_mp*this%L(1)
+		this%A0 = 0.9_mp*this%m%dx(1)
 
 		call twoParticleInit(this,v0,xp0,vp0,qs,ms,rho_back)
-		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,IC_wave)
+		print *, '======Charges======'
+		print *, 'particle 1 : ', qs(1)
+		print *, 'particle 2 : ', qs(2)
+		print *, '======Masses======'
+		print *, 'particle 1 : ', ms(1)
+		print *, 'particle 2 : ', ms(2)
+		print *, '======Positions======'
+		print *, 'particle 1 : ', xp0(1,:)
+		print *, 'particle 2 : ', xp0(2,:)
+		print *, '======Velocities======'
+		print *, 'particle 1 : ', vp0(1,:)
+		print *, 'particle 2 : ', vp0(2,:)
+
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,Orbit_radius)
 		call printPlasma(this%r)
 
 		call destroyAdjoint(adj)
@@ -294,25 +308,62 @@ contains
 
 		r0 = this%A0
 
-		xp0(1,:) = this%m%dx*( 0.5_mp + 32.0_mp )
-		xp0(2,:) = this%m%dx*( 0.5_mp + 32.0_mp )
+		xp0(1,:) = this%m%dx*( 0.5_mp + 16.0_mp )
+		xp0(2,:) = this%m%dx*( 0.5_mp + 16.0_mp )
 		xp0(1,1) = xp0(1,1) - 0.5_mp*r0
 		xp0(2,1) = xp0(2,1) + 0.5_mp*r0
 		vp0(1,:) = v0*(/ 0.0_mp, 1.0_mp, 0.0_mp /)
 		vp0(2,:) = -vp0(1,:)
+	end subroutine
 
-!		print *, '======Charges======'
-!		print *, 'particle 1 : ', qs(1)
-!		print *, 'particle 2 : ', qs(2)
-!		print *, '======Masses======'
-!		print *, 'particle 1 : ', ms(1)
-!		print *, 'particle 2 : ', ms(2)
-!		print *, '======Positions======'
-!		print *, 'particle 1 : ', xp0(1,:)
-!		print *, 'particle 2 : ', xp0(2,:)
-!		print *, '======Velocities======'
-!		print *, 'particle 1 : ', vp0(1,:)
-!		print *, 'particle 2 : ', vp0(2,:)
+	subroutine EfieldKernel()
+		type(PM3D) :: pm
+		real(mp) :: Ti=0.0_mp, Tf=10.0_mp, qe, me, qs(2), ms(2), rho_back, L(3), rhs(64,64,64)
+		real(mp) :: xp0(2,3), vp0(2,3), xd(1000)
+		integer :: Ng(3), N=2, Nd=1000
+		integer :: i
+
+		Ng = (/64,64,64/)
+		call buildPM3D(pm,Tf,Ti,Ng,N)
+
+		L = pm%L
+		qe = -pm%wp*pm%wp/(pm%n/PRODUCT(L))
+		me = -qe
+		xd = (/ ( L(1)*i*1.0_mp/Nd, i=1,1000 ) /)
+		vp0 = 0.0_mp
+		xp0(1,:) = 0.5_mp*L
+		xp0(2,:) = 0.5_mp*L
+		!Attractive particles
+!		qs(1) = qe
+!		qs(2) = -qe
+!		rho_back = 0.0_mp
+!		ms = me
+		!Repulsive particles
+		qs = qe
+		rho_back = -qe*pm%n/PRODUCT(L)
+		ms = me
+
+		open(unit=301,file='data/Fpx.bin',status='replace',form='unformatted',access='stream')
+		do i=1,Nd
+			xp0(2,1) = xd(i)
+			call setPlasma(pm%p,xp0,vp0,qs,ms)
+			call setMesh(pm%m, rho_back)
+
+			call assignMatrix(pm%a,pm%p,pm%m,pm%p%xp)
+			call chargeAssign(pm%a,pm%p,pm%m)
+			rhs = -pm%m%rho/pm%eps0
+			call FFTPoisson(pm%m%phi,rhs,pm%m%W)
+			pm%m%E = - Gradient(pm%m%phi,pm%m%dx,pm%ng)
+			call forceAssign(pm%a,pm%p,pm%m)
+			write(301) pm%p%qs(2)/pm%p%ms(2)*pm%p%Ep(2,1)
+		end do
+		close(301)
+
+		open(unit=302,file='data/xd.bin',status='replace',form='unformatted',access='stream')
+		write(302) xd
+		close(302)
+
+		call destroyPM3D(pm)
 	end subroutine
 
 end module

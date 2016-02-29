@@ -86,10 +86,10 @@ contains
 			write(301) this%xpdata(:,:,i)
 			write(302) this%vpdata(:,:,i)
 
-			write(303) this%Epdata(:,:,i)
-!			write(303) this%Edata(:,:,:,1,i)
-!			write(303) this%Edata(:,:,:,2,i)
-!			write(303) this%Edata(:,:,:,3,i)
+!			write(303) this%Epdata(:,:,i)
+			write(303) this%Edata(:,:,:,1,i)
+			write(303) this%Edata(:,:,:,2,i)
+			write(303) this%Edata(:,:,:,3,i)
 			write(304) this%PE(i)
 			write(305) this%KE(i)
 		end do

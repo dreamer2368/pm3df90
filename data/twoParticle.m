@@ -37,8 +37,8 @@ s=5;
 t = 32;
 
 %video clip
-writerObj = VideoWriter('Repulsive2.avi');
-writerObj.FrameRate = 25;
+writerObj = VideoWriter('close_encounter.avi');
+writerObj.FrameRate = 40;
 open(writerObj);
 
 for i=1:Nt
@@ -46,7 +46,7 @@ for i=1:Nt
 %     plot(xp(:,1,i),vp(:,1,i),'.k');
     scatter3(squeeze(xp(:,1,i)),squeeze(xp(:,2,i)),squeeze(xp(:,3,i)),50);
     axis([0 Lx 0 Ly 0 Lz]);
-    title('2 Particles with $v_0=0.9$','Interpreter','Latex');
+    title('2 Particles with $v_0=1.0$','Interpreter','Latex');
     set(gca,'fontsize',25);
 %     axis([0 Lx -0.6 0.6]);
 %     title('Spatial distribution');
@@ -84,7 +84,7 @@ close all
 
 r1 = squeeze( abs(xp(1,:,:) - xp(2,:,:)) );
 r1 = sqrt( sum( r1.^2 , 1 ) );
-time = 0.05*(1:Nt)/2/pi;
+time = 0.01*(1:Nt)/2/pi;
 
 figure(2)
 plot(time,r1);
@@ -93,7 +93,7 @@ r = squeeze( min( abs(xp(1,:,:) - xp(2,:,:)), Lx - abs(xp(1,:,:) - xp(2,:,:)) ) 
 r = sqrt( sum( r.^2 , 1 ) );
 figure(3)
 plot(time, r);
-title(strcat('$\vert x_1 - x_2 \vert$ with $v_0 = 0.9$ : $\overline{r}=$',num2str(mean(r(500:Nt)))),'Interpreter','Latex');
+title(strcat('$\vert x_1 - x_2 \vert$ with $v_0 = 1.0$ : $\overline{r}=$',num2str(mean(r(500:Nt)))),'Interpreter','Latex');
 xlabel('$T/T_p$','Interpreter','Latex');
 ylabel('minimum distance');
 set(gca,'fontsize',25);
@@ -101,14 +101,14 @@ set(gca,'fontsize',25);
 %%
 close all
 
-time = 0.05*(1:Nt);
+time = 0.01*(1:Nt);
 wp = 1; eps0 = 1;
 tp = 2*pi/wp;
 PE = eps0*PE;
 
 figure(4)
 plot(time/tp,KE,'-r',time/tp,PE,'-b',time/tp,KE+PE,'-k');
-title('Two particles with $v_0=0.9$','Interpreter','Latex');
+title('Two particles with $v_0=1.0$','Interpreter','Latex');
 xlabel('$T/T_p$','Interpreter','Latex');
 ylabel('Energy');
 legend('Kinetic','Potential','Total');
@@ -124,7 +124,6 @@ close all
 fileID = fopen('ek.bin');
 ek = fread(fileID,6*20,'double');
 ek = reshape(ek,[20,6]);
-ek0 = [8.4764477945905060E-003, 2.2032771176303872E-003, 4.3627461166659406E-003, 3.1766359150327572, 38.088234823333075, 44491365.287056476];
 time = [1/2/pi, 1, 2, 4, 10, 20]; time = time*2*pi;
 
 fileID = fopen('dA.bin');
@@ -132,7 +131,7 @@ dA = fread(fileID,20,'double');
 
 figure(5)
 for i=1:6
-    loglog(dA,ek(:,i)/ek0(i),'.-');
+    loglog(dA,ek(:,i),'.-');
     hold on
 end
 title('Degradation in 2 particles with $v_0=0.2$','Interpreter','Latex');
@@ -163,3 +162,14 @@ xlabel('time');
 ylabel('$\vert E_{y,z}\vert$','Interpreter','Latex');
 title('E-field acting on each particle in y,z');
 set(gca,'fontsize',25);
+
+%%
+close all
+fileID = fopen('Fpx.bin');
+Fpx = fread(fileID,1000,'double');
+fileID = fopen('xd.bin');
+xd = fread(fileID,1000,'double');
+
+figure(8)
+plot(xd-Lx/2,Fpx,'.k',xd-Lx/2,1./(xd-Lx/2)./(xd-Lx/2),'-r');
+axis([-Lx/2 Lx/2 min(Fpx) max(Fpx)]);
