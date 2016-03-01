@@ -5,6 +5,42 @@ module modSource
 	implicit none
 
 contains
+!==============Increase thermal velocity===================================
+
+	subroutine V_Th(this,k,str)
+		type(PM3D), intent(inout) :: this
+		integer, intent(in) :: k
+		character(len=*), intent(in) :: str
+
+		SELECT CASE (str)
+			CASE('vp')
+				if(k==this%ni) then
+					this%p%vp = this%p%vp + this%B0*this%p%vp
+				end if
+		END SELECT
+	end subroutine
+
+	subroutine dV_Th(adj,pm,k,str)
+		type(adjoint), intent(inout) :: adj
+		type(PM3D), intent(in) :: pm
+		integer, intent(in) :: k
+		character(len=*), intent(in) :: str
+
+		select case (str)
+			case ('vp')
+				if( k .eq. pm%ni-1 ) then
+					adj%dvps = adj%vps*pm%B0/(-pm%dt)
+				end if
+		end select
+	end subroutine
+
+	subroutine dV_Th_dB(adj,pm,dJdA)
+		type(adjoint), intent(in) :: adj
+		type(PM3D), intent(in) :: pm
+		real(mp), intent(out) :: dJdA
+
+		dJdA = SUM( - pm%r%vpdata(:,:,pm%ni-1)*pm%r%vpsdata(:,:,pm%ni)/pm%dt )
+	end subroutine
 
 !==============Wave perturbation on position===============================
 
