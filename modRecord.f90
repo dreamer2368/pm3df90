@@ -12,6 +12,7 @@ module modRecord
 		real(mp), allocatable :: xpdata(:,:,:)
 		real(mp), allocatable :: vpdata(:,:,:)
 		real(mp), allocatable :: xpsdata(:,:,:)
+		real(mp), allocatable :: vpsdata(:,:,:)
 
 		real(mp), allocatable :: Epdata(:,:,:)
 		real(mp), allocatable :: Edata(:,:,:,:,:)
@@ -33,6 +34,7 @@ contains
 		allocate(this%xpdata(n,3,nt))
 		allocate(this%vpdata(n,3,nt))
 		allocate(this%xpsdata(n,3,nt))
+		allocate(this%vpsdata(n,3,nt))
 
 		allocate(this%Epdata(n,3,nt))
 		allocate(this%Edata(ng(1),ng(2),ng(3),3,nt))
@@ -47,6 +49,7 @@ contains
 		deallocate(this%xpdata)
 		deallocate(this%vpdata)
 		deallocate(this%xpsdata)
+		deallocate(this%vpsdata)
 
 		deallocate(this%Epdata)
 		deallocate(this%Edata)
@@ -98,14 +101,6 @@ contains
 		close(303)
 		close(304)
 		close(305)
-	end subroutine
-
-	subroutine recordAdjoint(this,k,xps)
-		type(recordData), intent(inout) :: this
-		integer, intent(in) :: k
-		real(mp), intent(in) :: xps(this%n,3)
-
-		this%xpsdata(:,:,k) = xps
 	end subroutine
 
 end module

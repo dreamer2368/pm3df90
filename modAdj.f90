@@ -47,6 +47,15 @@ contains
 		deallocate(this%dEs)
 	end subroutine
 
+	subroutine recordAdjoint(this,adj,k)
+		type(recordData), intent(inout) :: this
+		type(adjoint), intent(in) :: adj
+		integer, intent(in) :: k
+
+		this%xpsdata(:,:,k) = adj%xps
+		this%vpsdata(:,:,k) = adj%vps
+	end subroutine
+
 	subroutine reset_Dadj(adj)
 		type(adjoint), intent(inout) :: adj
 

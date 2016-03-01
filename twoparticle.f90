@@ -77,7 +77,7 @@ contains
 
 		open(unit=401,file='data/ek.bin',status='replace',form='unformatted',access='stream')
 		open(unit=402,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
-		do i=1,1!size(Tf)
+		do i=1,size(Tf)
 			call buildPM3D(this,Tf(i),Ti,Ng,N,dt=dt,B=B0)
 			call buildAdjoint(adj,this)
 

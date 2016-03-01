@@ -12,7 +12,7 @@ contains
 		integer, intent(in) :: Ng(3), Nd(3)
 		type(PM3D) :: this
 		type(adjoint) :: adj
-		real(mp) :: Tf=1.6_mp,Ti=0.8_mp,rho_back
+		real(mp) :: Tf=1.6_mp,Ti=0.0_mp,rho_back
 		integer :: N
 		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
 		real(mp) :: B0=1.0_mp, dB, dJdA, fdB(20)
@@ -93,6 +93,7 @@ contains
 			call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
 			call QoI(adj,this,1)
 			print *, (adj%J1 - adj%J0)/dB
+			print *, 'error = ', ABS( (dJdA - (adj%J1 - adj%J0)/dB)/dJdA )
 			write(401) (adj%J1 - adj%J0)/dB
 		end do
 		close(401)

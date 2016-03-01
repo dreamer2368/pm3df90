@@ -180,7 +180,7 @@ contains
 			call Dsource(adj,pm,nk,'xp')
 			call Adj_move(adj,pm,adj%dxps)
 
-			call recordAdjoint(pm%r,nk,adj%xps)									!record for nk=1~Nt : xps_nk and vp_(nk+1/2)
+			call recordAdjoint(pm%r,adj,nk)									!record for nk=1~Nt : xps_nk and vp_(nk+1/2)
 		end do
 	end subroutine
 
