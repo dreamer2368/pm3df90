@@ -114,16 +114,6 @@ contains
 		call recordPlasma(this%r,this%p,this%m,k)									!record for n=1~Nt : xp_k and vp_(k+1/2)
 	end subroutine
 
-	subroutine QOItwo(this,A,B,J)
-		type(PM3D), intent(in) :: this
-		integer, intent(in) :: A, B
-		real(mp), intent(out) :: J
-		integer :: N
-		N = this%n
-
-		J = 1.0_mp/N/(B-A)*SUM(this%r%vpdata(:,:,A+1:B)**2)		!omitted 1/N/T for the sake of machine precision
-	end subroutine
-
 !===================Adjoint time stepping==========================
 
 	subroutine backward_sweep(adj,pm, dJ, Dsource)
@@ -178,6 +168,7 @@ contains
 
 			!======= dE_g =============
 			call Adj_forceAssign_E(pm%a,adj%Eps,adj%Es)
+			adj%Es = adj%Es + adj%dEs
 
 			!======= dPhi_g, dRho_g =============
 			call FFTAdj(adj%Es,adj%rhos,pm%m%W,pm%m%dx)

@@ -77,7 +77,7 @@ contains
 
 		open(unit=401,file='data/ek.bin',status='replace',form='unformatted',access='stream')
 		open(unit=402,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
-		do i=1,size(Tf)
+		do i=1,1!size(Tf)
 			call buildPM3D(this,Tf(i),Ti,Ng,N,dt=dt,B=B0)
 			call buildAdjoint(adj,this)
 
@@ -287,33 +287,33 @@ contains
 		me = -qe
 
 		!Repulsive particles
-!		qs = qe
-!		ms = me
-!		rho_back = -qe*this%n/PRODUCT(L)
-!
-!!		xp0(1,:) = this%m%dx*( 0.5_mp + 32.0_mp )
-!!		xp0(2,:) = this%m%dx*( 0.5_mp + 32.0_mp )
-!		xp0(1,:) = 0.5_mp*this%L
-!		xp0(2,:) = 0.5_mp*this%L
-!		xp0(1,1) = xp0(1,1) - 0.25_mp*this%L(1)
-!		xp0(2,1) = xp0(2,1) + 0.25_mp*this%L(1)
-!		vp0(1,:) = v0*(/ 1.0_mp, 0.0_mp, 0.0_mp /)
-!		vp0(2,:) = -vp0(1,:)
+		qs = qe
+		ms = me
+		rho_back = -qe*this%n/PRODUCT(L)
+
+!		xp0(1,:) = this%m%dx*( 0.5_mp + 32.0_mp )
+!		xp0(2,:) = this%m%dx*( 0.5_mp + 32.0_mp )
+		xp0(1,:) = 0.5_mp*this%L
+		xp0(2,:) = 0.5_mp*this%L
+		xp0(1,1) = xp0(1,1) - 0.25_mp*this%L(1)
+		xp0(2,1) = xp0(2,1) + 0.25_mp*this%L(1)
+		vp0(1,:) = v0*(/ 1.0_mp, 0.0_mp, 0.0_mp /)
+		vp0(2,:) = -vp0(1,:)
 
 		!Attractive particles
-		qs(1) = qe
-		qs(2) = -qe
-		rho_back = 0.0_mp
-		ms = me
-
-		r0 = this%A0
-
-		xp0(1,:) = this%m%dx*( 0.5_mp + 16.0_mp )
-		xp0(2,:) = this%m%dx*( 0.5_mp + 16.0_mp )
-		xp0(1,1) = xp0(1,1) - 0.5_mp*r0
-		xp0(2,1) = xp0(2,1) + 0.5_mp*r0
-		vp0(1,:) = v0*(/ 0.0_mp, 1.0_mp, 0.0_mp /)
-		vp0(2,:) = -vp0(1,:)
+!		qs(1) = qe
+!		qs(2) = -qe
+!		rho_back = 0.0_mp
+!		ms = me
+!
+!		r0 = this%A0
+!
+!		xp0(1,:) = this%m%dx*( 0.5_mp + 16.0_mp )
+!		xp0(2,:) = this%m%dx*( 0.5_mp + 16.0_mp )
+!		xp0(1,1) = xp0(1,1) - 0.5_mp*r0
+!		xp0(2,1) = xp0(2,1) + 0.5_mp*r0
+!		vp0(1,:) = v0*(/ 0.0_mp, 1.0_mp, 0.0_mp /)
+!		vp0(2,:) = -vp0(1,:)
 	end subroutine
 
 	subroutine EfieldKernel()

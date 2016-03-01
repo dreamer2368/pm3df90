@@ -122,15 +122,16 @@ set(gca,'fontsize',25);
 close all
 
 fileID = fopen('ek.bin');
-ek = fread(fileID,6*20,'double');
-ek = reshape(ek,[20,6]);
+% ek = fread(fileID,6*20,'double');
+% ek = reshape(ek,[20,6]);
+ek = fread(fileID,20,'double');
 time = [1/2/pi, 1, 2, 4, 10, 20]; time = time*2*pi;
 
 fileID = fopen('dA.bin');
 dA = fread(fileID,20,'double');
 
 figure(5)
-for i=1:6
+for i=1:1
     loglog(dA,ek(:,i),'.-');
     hold on
 end
@@ -141,12 +142,12 @@ h=legend('$T_p/2\pi$','$T_p$','$2T_p$','$4T_p$','$10T_p$','$20T_p$');
 set(h,'Interpreter','Latex');
 set(gca,'fontsize',25);
 
-figure(6)
-semilogy(time,ek0,'o-');
-xlabel('$T$','Interpreter','Latex');
-ylabel('Sensitivity');
-title('Sensitivity divergence with $v_0=0.2$','Interpreter','Latex');
-set(gca,'fontsize',25);
+% figure(6)
+% semilogy(time,ek0,'o-');
+% xlabel('$T$','Interpreter','Latex');
+% ylabel('Sensitivity');
+% title('Sensitivity divergence with $v_0=0.2$','Interpreter','Latex');
+% set(gca,'fontsize',25);
 
 %%
 close all

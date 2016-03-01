@@ -8,7 +8,7 @@ module modAdj
 		integer :: nt, ni, n, ng(3)
 		real(mp) :: J0, J1
 		real(mp), allocatable :: xps(:,:), vps(:,:), Eps(:,:), Es(:,:,:,:), rhos(:,:,:)
-		real(mp), allocatable :: dvps(:,:), dxps(:,:)
+		real(mp), allocatable :: dvps(:,:), dxps(:,:), dEs(:,:,:,:)
 	end type
 
 contains
@@ -30,6 +30,7 @@ contains
 
 		allocate(this%dvps(this%n,3))
 		allocate(this%dxps(this%n,3))
+		allocate(this%dEs(this%ng(1),this%ng(2),this%ng(3),3))
 	end subroutine
 
 	subroutine destroyAdjoint(this)
@@ -43,6 +44,7 @@ contains
 
 		deallocate(this%dvps)
 		deallocate(this%dxps)
+		deallocate(this%dEs)
 	end subroutine
 
 	subroutine reset_Dadj(adj)
@@ -50,6 +52,7 @@ contains
 
 		adj%dvps = 0.0_mp
 		adj%dxps = 0.0_mp
+		adj%dEs = 0.0_mp
 	end subroutine
 
 	subroutine Adj_chargeAssign(this,p,m,rhos,xps)
