@@ -72,19 +72,30 @@ contains
 		this%KE(k) = 0.5_mp*SUM(p%ms*SUM(p%vp**2,2))
 	end subroutine
 
-	subroutine printPlasma(this)
+	subroutine printPlasma(this,str)
 		type(recordData), intent(in) :: this
+		character(len=*), intent(in), optional :: str
 		integer :: i
 
-		open(unit=301,file='data/record',status='replace')
-		write(301,*) this%n, this%ng, this%nt, this%L
-		close(301)
+		if( present(str) ) then
+			open(unit=300,file='data/record'//str,status='replace')
+			open(unit=301,file='data/xp'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=302,file='data/vp'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=303,file='data/E'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=304,file='data/PE'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=305,file='data/KE'//str//'.bin',status='replace',form='unformatted',access='stream')
+		else
+			open(unit=300,file='data/record',status='replace')
+			open(unit=301,file='data/xp.bin',status='replace',form='unformatted',access='stream')
+			open(unit=302,file='data/vp.bin',status='replace',form='unformatted',access='stream')
+			open(unit=303,file='data/E.bin',status='replace',form='unformatted',access='stream')
+			open(unit=304,file='data/PE.bin',status='replace',form='unformatted',access='stream')
+			open(unit=305,file='data/KE.bin',status='replace',form='unformatted',access='stream')
+		end if
 
-		open(unit=301,file='data/xp.bin',status='replace',form='unformatted',access='stream')
-		open(unit=302,file='data/vp.bin',status='replace',form='unformatted',access='stream')
-		open(unit=303,file='data/E.bin',status='replace',form='unformatted',access='stream')
-		open(unit=304,file='data/PE.bin',status='replace',form='unformatted',access='stream')
-		open(unit=305,file='data/KE.bin',status='replace',form='unformatted',access='stream')
+		write(300,*) this%n, this%ng, this%nt, this%L
+		close(300)
+
 		do i = 1,this%nt
 			write(301) this%xpdata(:,:,i)
 			write(302) this%vpdata(:,:,i)
