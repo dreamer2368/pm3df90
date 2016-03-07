@@ -16,6 +16,7 @@ module modRecord
 
 		real(mp), allocatable :: Epdata(:,:,:)
 		real(mp), allocatable :: Edata(:,:,:,:,:)
+		real(mp), allocatable :: rhodata(:,:,:,:)
 		real(mp), allocatable :: PE(:), KE(:)
 	end type
 
@@ -38,6 +39,7 @@ contains
 
 		allocate(this%Epdata(n,3,nt))
 		allocate(this%Edata(ng(1),ng(2),ng(3),3,nt))
+		allocate(this%rhodata(ng(1),ng(2),ng(3),nt))
 
 		allocate(this%PE(nt))
 		allocate(this%KE(nt))
@@ -53,6 +55,7 @@ contains
 
 		deallocate(this%Epdata)
 		deallocate(this%Edata)
+		deallocate(this%rhodata)
 
 		deallocate(this%PE)
 		deallocate(this%KE)
@@ -68,6 +71,7 @@ contains
 		this%vpdata(:,:,k) = p%vp
 		this%Epdata(:,:,k) = p%Ep
 		this%Edata(:,:,:,:,k) = m%E
+		this%rhodata(:,:,:,k) = m%rho
 		this%PE(k) = 0.5_mp*SUM(m%E**2)*PRODUCT(m%dx)
 		this%KE(k) = 0.5_mp*SUM(p%ms*SUM(p%vp**2,2))
 	end subroutine
@@ -82,15 +86,17 @@ contains
 			open(unit=301,file='data/xp'//str//'.bin',status='replace',form='unformatted',access='stream')
 			open(unit=302,file='data/vp'//str//'.bin',status='replace',form='unformatted',access='stream')
 			open(unit=303,file='data/E'//str//'.bin',status='replace',form='unformatted',access='stream')
-			open(unit=304,file='data/PE'//str//'.bin',status='replace',form='unformatted',access='stream')
-			open(unit=305,file='data/KE'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=304,file='data/rho'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=305,file='data/PE'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=306,file='data/KE'//str//'.bin',status='replace',form='unformatted',access='stream')
 		else
 			open(unit=300,file='data/record',status='replace')
 			open(unit=301,file='data/xp.bin',status='replace',form='unformatted',access='stream')
 			open(unit=302,file='data/vp.bin',status='replace',form='unformatted',access='stream')
 			open(unit=303,file='data/E.bin',status='replace',form='unformatted',access='stream')
-			open(unit=304,file='data/PE.bin',status='replace',form='unformatted',access='stream')
-			open(unit=305,file='data/KE.bin',status='replace',form='unformatted',access='stream')
+			open(unit=304,file='data/rho.bin',status='replace',form='unformatted',access='stream')
+			open(unit=305,file='data/PE.bin',status='replace',form='unformatted',access='stream')
+			open(unit=306,file='data/KE.bin',status='replace',form='unformatted',access='stream')
 		end if
 
 		write(300,*) this%n, this%ng, this%nt, this%L
@@ -104,14 +110,16 @@ contains
 			write(303) this%Edata(:,:,:,1,i)
 			write(303) this%Edata(:,:,:,2,i)
 			write(303) this%Edata(:,:,:,3,i)
-			write(304) this%PE(i)
-			write(305) this%KE(i)
+			write(304) this%rhodata(:,:,:,i)
+			write(305) this%PE(i)
+			write(306) this%KE(i)
 		end do
 		close(301)
 		close(302)
 		close(303)
 		close(304)
 		close(305)
+		close(306)
 	end subroutine
 
 end module
