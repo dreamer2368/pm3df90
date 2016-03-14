@@ -7,12 +7,51 @@ module testmodule
 
 contains
 
+	subroutine Compare_Traj_twostream(v0,Ng,Nd,source,B1,B2)
+		real(mp), intent(in) :: v0, B1, B2
+		integer, intent(in) :: Ng(3), Nd(3)
+		type(PM3D) :: this
+		type(adjoint) :: adj
+		real(mp) :: Tf=1.6_mp,Ti=0.2_mp,rho_back
+		integer :: N
+		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
+		interface
+			subroutine source(pm,k,str)
+				use modPM3D
+				type(PM3D), intent(inout) :: pm
+				integer, intent(in) :: k
+				character(len=*), intent(in) :: str
+			end subroutine
+		end interface
+		N = PRODUCT(Nd)
+
+		call buildPM3D(this,Tf,Ti,Ng,N,dt=0.2_mp,B=0.0_mp)
+		call buildAdjoint(adj,this)
+
+		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
+		call printPlasma(this%r,'0')
+
+		this%B0 = 0.0_mp+B1
+		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
+		call printPlasma(this%r,'1')
+
+		this%B0 = 0.0_mp+B2
+		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
+		call printPlasma(this%r,'2')
+
+		call destroyAdjoint(adj)
+		call destroyPM3D(this)
+	end subroutine
+
 	subroutine test_fullAdjoint(v0, Ng, Nd,QoI,dQoI,source,Dsource,dQoI_dsource)
 		real(mp), intent(in) :: v0
 		integer, intent(in) :: Ng(3), Nd(3)
 		type(PM3D) :: this
 		type(adjoint) :: adj
-		real(mp) :: Tf=1.6_mp,Ti=0.0_mp,rho_back
+		real(mp) :: Tf=1.6_mp,Ti=0.2_mp,rho_back
 		integer :: N
 		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
 		real(mp) :: B0=1.0_mp, dB, dJdA, fdB(20)
@@ -81,12 +120,12 @@ contains
 
 		fdB = (/ ( EXP(-i*1.0_mp), i=1,20 ) /)
 		open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
-		write(301) B0*fdB
+		write(301) fdB
 		close(301)
 
 		open(unit=401,file='data/dJdAFD.bin',status='replace',form='unformatted',access='stream')
 		do i=1,size(fdB)
-			dB = B0*fdB(i)
+			dB = fdB(i)
 			this%B0 = B0 + dB
 			print *, 'B = ',this%B0
 			call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
