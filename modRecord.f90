@@ -8,6 +8,7 @@ module modRecord
 	type recordData
 		integer :: nt, n, ng(3)
 		real(mp) :: L(3), dx(3)
+		character(len=:), allocatable :: dir
 
 		real(mp), allocatable :: xpdata(:,:,:)
 		real(mp), allocatable :: vpdata(:,:,:)
@@ -22,10 +23,11 @@ module modRecord
 
 contains
 
-	subroutine buildRecord(this,nt,n,L,ng)
+	subroutine buildRecord(this,nt,n,L,ng,input_dir)
 		type(recordData), intent(out) :: this
 		integer, intent(in) :: nt, n, ng(3)
 		real(mp), intent(in) :: L(3)
+		character(len=*), intent(in), optional :: input_dir
 
 		this%nt = nt
 		this%n = n
@@ -43,6 +45,16 @@ contains
 
 		allocate(this%PE(nt))
 		allocate(this%KE(nt))
+
+		if( present(input_dir) ) then
+			allocate(character(len=len(input_dir)) :: this%dir)
+			this%dir = input_dir
+		else
+			allocate(character(len=0) :: this%dir)
+			this%dir = ''
+		end if
+
+		call system('mkdir -p data/'//this%dir)
 	end subroutine
 
 	subroutine destroyRecord(this)
@@ -59,6 +71,8 @@ contains
 
 		deallocate(this%PE)
 		deallocate(this%KE)
+
+		deallocate(this%dir)
 	end subroutine
 
 	subroutine recordPlasma(this,p,m,k)
@@ -82,21 +96,21 @@ contains
 		integer :: i
 
 		if( present(str) ) then
-			open(unit=300,file='data/record'//str,status='replace')
-			open(unit=301,file='data/xp'//str//'.bin',status='replace',form='unformatted',access='stream')
-			open(unit=302,file='data/vp'//str//'.bin',status='replace',form='unformatted',access='stream')
-			open(unit=303,file='data/E'//str//'.bin',status='replace',form='unformatted',access='stream')
-			open(unit=304,file='data/rho'//str//'.bin',status='replace',form='unformatted',access='stream')
-			open(unit=305,file='data/PE'//str//'.bin',status='replace',form='unformatted',access='stream')
-			open(unit=306,file='data/KE'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=300,file='data/'//this%dir//'/record'//str,status='replace')
+			open(unit=301,file='data/'//this%dir//'/xp'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=302,file='data/'//this%dir//'/vp'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=303,file='data/'//this%dir//'/E'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=304,file='data/'//this%dir//'/rho'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=305,file='data/'//this%dir//'/PE'//str//'.bin',status='replace',form='unformatted',access='stream')
+			open(unit=306,file='data/'//this%dir//'/KE'//str//'.bin',status='replace',form='unformatted',access='stream')
 		else
-			open(unit=300,file='data/record',status='replace')
-			open(unit=301,file='data/xp.bin',status='replace',form='unformatted',access='stream')
-			open(unit=302,file='data/vp.bin',status='replace',form='unformatted',access='stream')
-			open(unit=303,file='data/E.bin',status='replace',form='unformatted',access='stream')
-			open(unit=304,file='data/rho.bin',status='replace',form='unformatted',access='stream')
-			open(unit=305,file='data/PE.bin',status='replace',form='unformatted',access='stream')
-			open(unit=306,file='data/KE.bin',status='replace',form='unformatted',access='stream')
+			open(unit=300,file='data/'//this%dir//'/record',status='replace')
+			open(unit=301,file='data/'//this%dir//'/xp.bin',status='replace',form='unformatted',access='stream')
+			open(unit=302,file='data/'//this%dir//'/vp.bin',status='replace',form='unformatted',access='stream')
+			open(unit=303,file='data/'//this%dir//'/E.bin',status='replace',form='unformatted',access='stream')
+			open(unit=304,file='data/'//this%dir//'/rho.bin',status='replace',form='unformatted',access='stream')
+			open(unit=305,file='data/'//this%dir//'/PE.bin',status='replace',form='unformatted',access='stream')
+			open(unit=306,file='data/'//this%dir//'/KE.bin',status='replace',form='unformatted',access='stream')
 		end if
 
 		write(300,*) this%n, this%ng, this%nt, this%L

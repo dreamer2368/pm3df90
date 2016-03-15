@@ -22,11 +22,12 @@ module modPM3D
 
 contains
 
-	subroutine buildPM3D(this,Tf,Ti,Ng,N,dt,L,A,B)
+	subroutine buildPM3D(this,Tf,Ti,Ng,N,dt,L,A,B,dir)
 		type(PM3D), intent(out) :: this
 		real(mp), intent(in) :: Tf,Ti
 		integer, intent(in) :: Ng(3), N
 		real(mp), intent(in), optional :: dt, A, B, L(3)
+		character(len=*), intent(in), optional :: dir
 		if( present(dt) ) then
 			this%dt = dt
 		else
@@ -63,7 +64,11 @@ contains
 		call buildPlasma(this%p,N)
 		call buildMesh(this%m,this%L,Ng)
 		call buildAssign(this%a,N,Ng)
-		call buildRecord(this%r,this%nt,this%n,this%L,this%ng)
+		if( present(dir) ) then
+			call buildRecord(this%r,this%nt,this%n,this%L,this%ng,dir)
+		else
+			call buildRecord(this%r,this%nt,this%n,this%L,this%ng)
+		end if
 	end subroutine
 
 	subroutine destroyPM3D(this)
