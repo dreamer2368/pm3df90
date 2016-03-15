@@ -7,6 +7,49 @@ module Landau
 
 contains
 
+	subroutine Compare_Traj_Landau(vT,Ng,Nd,source,B1,B2)
+		real(mp), intent(in) :: vT, B1, B2
+		integer, intent(in) :: Ng(3), Nd(3)
+		type(PM3D) :: this
+		real(mp) :: B0
+		real(mp) :: Tf,Ti,rho_back,wp,Tp,eps0,dt,L(3)
+		integer :: N
+		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
+		interface
+			subroutine source(pm,k,str)
+				use modPM3D
+				type(PM3D), intent(inout) :: pm
+				integer, intent(in) :: k
+				character(len=*), intent(in) :: str
+			end subroutine
+		end interface
+		N = PRODUCT(Nd)
+		wp = 1.0_mp
+		Tp = 2.0_mp*pi/wp
+		eps0 = 1.0_mp
+		dt = 0.1_mp
+		Ti = dt
+		L = 4.0_mp*pi
+		Tf = Ti + 30.0_mp*(2.0_mp*pi/1.0_mp)
+		B0 = 0.0_mp
+
+		call buildPM3D(this,Tf,Ti,Ng,N,dt=dt,L=L,A=0.1_mp,B=B0)
+
+		call LandauInit(this,Nd,0.0_mp,vT,xp0,vp0,qs,ms,rho_back)
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
+		call printPlasma(this%r,'0')
+
+		this%B0 = B0+B1
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
+		call printPlasma(this%r,'1')
+
+		this%B0 = B0+B2
+		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
+		call printPlasma(this%r,'2')
+
+		call destroyPM3D(this)
+	end subroutine
+
 	subroutine Landau_AdjTest(vT,Ng,Nd,QoI,dQoI,source,Dsource,dQoI_dsource)
 		real(mp), intent(in) :: vT
 		integer, intent(in) :: Ng(3),Nd(3)
