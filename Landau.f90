@@ -72,17 +72,17 @@ contains
 		Ti = dt
 		L = 4.0_mp*pi
 
-!		Tf = Ti + Tp*(/ 0.5_mp/pi, 1.0_mp, 2.0_mp, 4.0_mp, 10.0_mp, 20.0_mp /)
-		Tf = Ti + Tp*(/ 0.25_mp/pi, 0.5_mp/pi, 1.0_mp, 4.0_mp, 10.0_mp, 20.0_mp /)
-		B0 = 1.0_mp
+		Tf = Ti + Tp*(/ 0.5_mp/pi, 1.0_mp, 2.0_mp, 4.0_mp, 10.0_mp, 20.0_mp /)
+!		Tf = Ti + Tp*(/ 0.25_mp/pi, 0.5_mp/pi, 1.0_mp, 4.0_mp, 10.0_mp, 20.0_mp /)
+		B0 = 0.0_mp
 		fdB = (/ ( EXP(-i*1.0_mp), i=1,20 ) /)
 		open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
-		write(301) B0*fdB
+		write(301) fdB
 		close(301)
 
 		open(unit=401,file='data/ek.bin',status='replace',form='unformatted',access='stream')
 		open(unit=402,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
-		do i=1,2!size(Tf)
+		do i=1,size(Tf)
 			call buildPM3D(this,Tf(i),Ti,Ng,N,dt=dt,L=L,A=0.1_mp,B=B0)
 			call buildAdjoint(adj,this)
 
@@ -98,7 +98,7 @@ contains
 			write(402) dJdA
 
 			do j=1,size(fdB)
-				dB = B0*fdB(j)
+				dB = fdB(j)
 				this%B0 = B0 + dB
 				print *, 'B = ',this%B0
 				call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
