@@ -318,12 +318,12 @@ contains
 
 	subroutine EfieldKernel()
 		type(PM3D) :: pm
-		real(mp) :: Ti=0.0_mp, Tf=10.0_mp, qe, me, qs(2), ms(2), rho_back, L(3), rhs(64,64,64)
+		real(mp) :: Ti=0.0_mp, Tf=10.0_mp, qe, me, qs(2), ms(2), rho_back, L(3), rhs(32,32,32)
 		real(mp) :: xp0(2,3), vp0(2,3), xd(1000)
 		integer :: Ng(3), N=2, Nd=1000
 		integer :: i
 
-		Ng = (/64,64,64/)
+		Ng = (/32,32,32/)
 		call buildPM3D(pm,Tf,Ti,Ng,N)
 
 		L = pm%L

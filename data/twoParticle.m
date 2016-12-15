@@ -142,12 +142,20 @@ h=legend('$T_p/2\pi$','$T_p$','$2T_p$','$4T_p$','$10T_p$','$20T_p$');
 set(h,'Interpreter','Latex');
 set(gca,'fontsize',25);
 
-% figure(6)
-% semilogy(time,ek0,'o-');
-% xlabel('$T$','Interpreter','Latex');
-% ylabel('Sensitivity');
-% title('Sensitivity divergence with $v_0=0.2$','Interpreter','Latex');
-% set(gca,'fontsize',25);
+%%
+close all
+
+time = [1/2/pi, 1, 2, 4, 10, 20]; time = time*2*pi;
+
+fileID = fopen('dJdA.bin');
+dJdA = fread(fileID,6,'double');
+
+figure(6)
+semilogy(time,abs(dJdA),'o-');
+xlabel('$T$','Interpreter','Latex');
+ylabel('Sensitivity');
+title('Sensitivity divergence with $v_0=0.2$','Interpreter','Latex');
+set(gca,'fontsize',25);
 
 %%
 close all
@@ -166,11 +174,29 @@ set(gca,'fontsize',25);
 
 %%
 close all
+clc
+
 fileID = fopen('Fpx.bin');
 Fpx = fread(fileID,1000,'double');
 fileID = fopen('xd.bin');
 xd = fread(fileID,1000,'double');
 
-figure(8)
-plot(xd-Lx/2,Fpx,'.k',xd-Lx/2,1./(xd-Lx/2)./(xd-Lx/2),'-r');
-axis([-Lx/2 Lx/2 min(Fpx) max(Fpx)]);
+x1 = [0.8 1.6]; x2 = [0.2 0.4]; x3 = [0.0557 0.0583];
+x = xd-Lx/2;
+out1 = logical( ( (xd-Lx/2)>x1(1)/sqrt(3) ).*( (xd-Lx/2)<x1(2)/sqrt(3)) );
+out2 = logical( ( (xd-Lx/2)>x2(1)/sqrt(3) ).*( (xd-Lx/2)<x2(2)/sqrt(3)) );
+out3 = logical( ( (xd-Lx/2)>x3(1)/sqrt(3) ).*( (xd-Lx/2)<x3(2)/sqrt(3)) );
+
+Fig = figure(8);
+set(Fig,'Position',[100,100,650,550]);
+plot(xd-Lx/2,Fpx,'-k','linewidth',5);
+hold on
+plot(x(out1),Fpx(out1),'o-','linewidth',5);
+plot(x(out2),Fpx(out2),'o-','linewidth',5);
+plot(x(out3),Fpx(out3),'o-','linewidth',5,'markers',10);
+h=legend('Kernel','Long range','Short range','Inside mesh');
+set(h,'interpreter','latex','fontsize',30);
+axis([-Lx/2 Lx/2 1.5*min(Fpx) 1.5*max(Fpx)]);
+xlabel('Interparticle distance');
+ylabel('E-field kernel');
+set(gca,'fontsize',45);

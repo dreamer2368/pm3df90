@@ -478,12 +478,12 @@ contains
 		real(mp), intent(in) :: v0
 		integer, intent(in) :: Ng(3), Nd(3)
 		type(PM3D) :: this
-		real(mp) :: Tf=40.0_mp,Ti=20.0_mp,rho_back
+		real(mp) :: Tf=10.0_mp,Ti=5.0_mp,rho_back
 		integer :: N
 		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
 
 		N = PRODUCT(Nd)
-		call buildPM3D(this,Tf,Ti,Ng,N)
+		call buildPM3D(this,Tf,Ti,Ng,N,dir='test')
 
 		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
 		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,IC_wave)
