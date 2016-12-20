@@ -11,8 +11,8 @@ LIBS    = $(LAPACKLIB) $(FFTWLIBS)
 
 
 EXE = exec
-F90SRC = constants.f90 random.f90 MatrixSolver.f90 modPlasma.f90 modMesh.f90 modAssign.f90 modRecord.f90 modPM3D.f90 modAdj.f90 modQoI.f90 modSource.f90 timeStep.f90 init.f90 testmodule.f90 twoparticle.f90 Landau.f90 main.f90
-F90OBJ = constants.o random.o MatrixSolver.o modPlasma.o modMesh.o modAssign.o modRecord.o modPM3D.o modAdj.o modQoI.o modSource.o timeStep.o init.o testmodule.o twoparticle.o Landau.o main.o
+F90SRC = constants.f90 random.f90 MatrixSolver.f90 modSpecies.f90 modMesh.f90 modAssign.f90 modRecord.f90 modPM3D.f90 modAdj.f90 modQoI.f90 modControl.f90 timeStep.f90 init.f90 testmodule.f90 twoparticle.f90 Landau.f90 main.f90
+F90OBJ = constants.o random.o MatrixSolver.o modSpecies.o modMesh.o modAssign.o modRecord.o modPM3D.o modAdj.o modQoI.o modControl.o timeStep.o init.o testmodule.o twoparticle.o Landau.o main.o
 
 ### Targets
 all: $(EXE)
@@ -29,15 +29,15 @@ $(EXE): $(F90OBJ)
 
 # Dependencies
 MatrixSolver.o : constants.o
-modPlasma.o : constants.o
+modSpecies.o : constants.o
 modMesh.o : MatrixSolver.o
-modAssign.o : modPlasma.o modMesh.o
-modRecord.o : modPlasma.o modMesh.o
-modPM3D.o : modPlasma.o modMesh.o modAssign.o modRecord.o
+modAssign.o : modSpecies.o modMesh.o
+modPM3D.o : modSpecies.o modMesh.o modAssign.o
+modRecord.o : modPM3D.o
 modAdj.o : modPM3D.o
 modQoI.o : modAdj.o
-modSource.o : modAdj.o
-timeStep.o : modQoI.o modSource.o
+modControl.o : modAdj.o
+timeStep.o : modRecord.o modQoI.o modControl.o
 init.o: modPM3D.o random.o
 testmodule.o : init.o timeStep.o
 twoparticle.o : init.o timeStep.o

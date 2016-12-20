@@ -1,12 +1,12 @@
 module modAssign
 
-	use modPlasma
+	use modSpecies
 	use modMesh
 
 	implicit none
 
 	type pmAssign
-		integer :: n
+		integer :: np
 		integer :: ng(3)
 
 		integer, allocatable :: g(:,:,:)
@@ -15,16 +15,14 @@ module modAssign
 
 contains
 
-	subroutine buildAssign(this,n,ng)
+	subroutine buildAssign(this,ng)
 		type(pmAssign), intent(out) :: this
-		integer, intent(in) :: n
 		integer, intent(in) :: ng(3)
 
-		this%n = n
 		this%ng = ng
 
-		allocate(this%g(n,2,3))
-		allocate(this%frac(n,2,2,2))
+		allocate(this%g(1,2,3))
+		allocate(this%frac(1,2,2,2))
 	end subroutine
 
 	subroutine destroyAssign(this)
@@ -36,18 +34,24 @@ contains
 
 	subroutine assignMatrix(this,p,m,xp)	!apply BC and create assignment matrix
 		type(pmAssign), intent(inout) :: this
-		type(plasma), intent(inout) :: p
+		type(species), intent(inout) :: p
 		type(mesh), intent(inout) :: m
-		real(mp), intent(inout) :: xp(this%n,3)
-		integer :: i, k
+		real(mp), intent(inout) :: xp(:,:)
+		integer :: i, k, np
 		integer :: g1
 		integer :: gl		!left grid point
 		integer :: gr		!right grid point
 		real(mp) :: fracl(3)		!fraction for left grid point
 		real(mp) :: fracr(3)		!fraction for right grid point
 
+		np = size(xp,1)
+		this%np = np
+		deallocate(this%g)
+		deallocate(this%frac)
+		allocate(this%g(np,2,3))
+		allocate(this%frac(np,2,2,2))
 		!apply BC
-		do i=1,this%n
+		do i=1,np
 			!dimension
 			do k=1,3
 				if( xp(i,k)<0 ) then
@@ -65,7 +69,7 @@ contains
 
 		this%frac = 1.0_mp
 		!assignment matrix
-		do i=1,this%n
+		do i=1,this%np
 			!dimension
 			do k=1,3
 				g1 = FLOOR(xp(i,k)/m%dx(k) - 0.5_mp)+1
@@ -98,30 +102,32 @@ contains
 	end subroutine
 
 	subroutine chargeAssign(this,p,m)
-		type(pmAssign), intent(inout) :: this
-		type(plasma), intent(inout) :: p
+		type(pmAssign), intent(inout) :: this(:)
+		type(species), intent(inout) :: p(:)
 		type(mesh), intent(inout) :: m
-		integer :: i, g(2,3)
+		integer :: i,ip, g(2,3)
 		real(mp) :: dV
 
 		dV = PRODUCT(m%dx)
 
 		m%rho = 0.0_mp
-		do i=1,this%n
-			g = this%g(i,:,:)
-			m%rho( g(:,1), g(:,2), g(:,3) ) = m%rho( g(:,1), g(:,2), g(:,3) ) + p%qs(i)/dV*this%frac(i,:,:,:)
+		do ip=1,size(p)
+			do i=1,p(ip)%np
+				g = this(ip)%g(i,:,:)
+				m%rho( g(:,1), g(:,2), g(:,3) ) = m%rho( g(:,1), g(:,2), g(:,3) ) + p(ip)%qs*p(ip)%spwt/dV*this(ip)%frac(i,:,:,:)
+			end do
 		end do
 		m%rho = m%rho + m%rho_back
 	end subroutine
 
 	subroutine forceAssign(this,p,m)
 		type(pmAssign), intent(inout) :: this
-		type(plasma), intent(inout) :: p
+		type(species), intent(inout) :: p
 		type(mesh), intent(inout) :: m
 		integer :: i,j
 
 		p%Ep = 0.0_mp
-		do i=1,this%n
+		do i=1,this%np
 			p%Ep(i,1) = SUM( this%frac(i,:,:,:)*m%E( this%g(i,:,1), this%g(i,:,2), this%g(i,:,3), 1 ) )
 			p%Ep(i,2) = SUM( this%frac(i,:,:,:)*m%E( this%g(i,:,1), this%g(i,:,2), this%g(i,:,3), 2 ) )
 			p%Ep(i,3) = SUM( this%frac(i,:,:,:)*m%E( this%g(i,:,1), this%g(i,:,2), this%g(i,:,3), 3 ) )

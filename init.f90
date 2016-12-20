@@ -17,25 +17,27 @@ contains
 		end do
 	end function
 
-	subroutine particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)			!generate initial distribution
+	subroutine twostream_initialize(this,Nd,v0)			!generate initial distribution
 		type(PM3D), intent(inout) :: this
 		integer, intent(in) :: Nd(3)
 		real(mp), intent(in) :: v0
-		real(mp), intent(out) :: xp0(this%n,3), vp0(this%n,3), qs(this%n),ms(this%n),rho_back
-		real(mp) :: L(3),qe,me
-		integer :: i,i1,i2,i3,pm(this%n)
+		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs,ms,spwt
+		real(mp), dimension(this%m%ng(1),this%m%ng(2),this%m%ng(3)) :: rho_back
+		real(mp) :: L(3),qe,me,mode
+		integer :: N,i,i1,i2,i3,pm(PRODUCT(Nd))
 		L = this%L
+		N = PRODUCT(Nd)
+		mode=1.0_mp
 
-		if( this%n .ne. PRODUCT(Nd) ) then
-			print *, '!!FAULT :: Nd array size is not equal to the number of particles.'
-			stop
-		end if
-
-		qe = -this%wp*this%wp/(this%n/PRODUCT(L))
+		qe = -this%wp*this%wp/(N/PRODUCT(L))
 		qs = qe
 		me = -qe
 		ms = me
-		rho_back = -qe*this%n/PRODUCT(L)
+		spwt = 1.0_mp
+		rho_back = -qe*N/PRODUCT(L)
+
+		call buildSpecies(this%p(1),N,qs,ms,spwt)
+		call setMesh(this%m,rho_back)
 
 		!spatial distribution initialize
 		do i3 = 1,Nd(3)
@@ -46,14 +48,16 @@ contains
 				end do
 			end do
 		end do
-		xp0(:,1) = xp0(:,1) - this%A0*L(1)/this%n*SIN( 2.0_mp*pi*xp0(:,1)/L(1)*mode ) + 0.5_mp*L(1)
+		xp0(:,1) = xp0(:,1) - this%A0*L(1)/N*SIN( 2.0_mp*pi*xp0(:,1)/L(1)*mode ) + 0.5_mp*L(1)
 
 		!velocity distribution initialize
 !		vp0 = vT*randn(N)
 		vp0 = 0.0_mp
-		pm = (/ ( i, i=1,this%n ) /)
+		pm = (/ ( i, i=1,N ) /)
 		pm = 1 - 2*MOD(pm,2)
 		vp0(:,1) = vp0(:,1) + pm*v0
+
+		call setSpecies(this%p(1),N,xp0,vp0)
 	end subroutine
 
 end module
