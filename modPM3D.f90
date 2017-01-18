@@ -29,7 +29,8 @@ module modPM3D
 	type PM3D
 		integer :: nt, ni, ns, ng(3)
 		real(mp) :: L(3), eps0, wp
-		real(mp) :: dt, A0, B0
+		real(mp) :: dt
+		real(mp), allocatable :: A0(:)
 
 		type(species), allocatable :: p(:)
 		type(mesh) :: m
@@ -39,11 +40,11 @@ module modPM3D
 
 contains
 
-	subroutine buildPM3D(this,Tf,Ti,Ng,Ns,dt,L,A,B,dir,mod_input)
+	subroutine buildPM3D(this,Tf,Ti,Ng,Ns,dt,L,A,dir,mod_input)
 		type(PM3D), intent(out) :: this
 		real(mp), intent(in) :: Tf,Ti
 		integer, intent(in) :: Ng(3), Ns
-		real(mp), intent(in), optional :: dt, A, B, L(3)
+		real(mp), intent(in), optional :: dt, A(:), L(3)
 		character(len=*), intent(in), optional :: dir
 		integer, intent(in), optional :: mod_input
 		integer :: i, mod_r
@@ -53,14 +54,11 @@ contains
 			this%dt = 0.2_mp
 		end if
 		if( present(A) ) then
+			allocate(this%A0(size(A)))
 			this%A0 = A
 		else
+			allocate(this%A0(1))
 			this%A0 = 1.0_mp
-		end if
-		if( present(B) ) then
-			this%B0 = B
-		else
-			this%B0 = 0.0_mp
 		end if
 		if( present(L) ) then
 			this%L = L
@@ -76,7 +74,7 @@ contains
 		this%ns = Ns
 		this%nt = CEILING(Tf/this%dt)
 		this%dt = Tf/this%nt
-		this%ni = FLOOR(Ti/this%dt) + 1
+		this%ni = FLOOR(Ti/this%dt)+1
       print *, 'Plasma is created'
       print *, 'L = (',this%L,')'
       print *, 'Ng = (',Ng,')'
@@ -102,6 +100,8 @@ contains
 	subroutine destroyPM3D(this)
 		type(PM3D), intent(inout) :: this
 		integer :: i
+
+		deallocate(this%A0)
 
 		do i=1,this%ns
 			call destroySpecies(this%p(i))

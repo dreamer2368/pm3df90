@@ -25,6 +25,9 @@ contains
 		real(mp), dimension(this%m%ng(1),this%m%ng(2),this%m%ng(3)) :: rho_back
 		real(mp) :: L(3),qe,me,mode
 		integer :: N,i,i1,i2,i3,pm(PRODUCT(Nd))
+		integer :: nseed,clock
+		integer, allocatable :: seed(:)
+
 		L = this%L
 		N = PRODUCT(Nd)
 		mode=1.0_mp
@@ -40,15 +43,28 @@ contains
 		call setMesh(this%m,rho_back)
 
 		!spatial distribution initialize
-		do i3 = 1,Nd(3)
-			do i2 = 1,Nd(2)
-				do i1 = 1,Nd(1)
-					xp0(i1+Nd(1)*(i2-1)+Nd(1)*Nd(2)*(i3-1),:) =	&
-								(/ (i1-1)*L(1)/Nd(1),(i2-1)*L(2)/Nd(2),(i3-1)*L(3)/Nd(3) /)
-				end do
-			end do
+!		do i3 = 1,Nd(3)
+!			do i2 = 1,Nd(2)
+!				do i1 = 1,Nd(1)
+!					xp0(i1+Nd(1)*(i2-1)+Nd(1)*Nd(2)*(i3-1),:) =	&
+!								(/ (i1-1)*L(1)/Nd(1),(i2-1)*L(2)/Nd(2),(i3-1)*L(3)/Nd(3) /)
+!				end do
+!			end do
+!		end do
+
+		call RANDOM_SEED(size=nseed)
+		allocate(seed(nseed))
+!		call SYSTEM_CLOCK(COUNT=clock)
+!		seed = clock + 127*(/ ( i, i=1,nseed ) /)
+		seed = 127*(/ ( i, i=1,nseed ) /)
+		call RANDOM_SEED(put=seed)
+		deallocate(seed)
+
+		call RANDOM_NUMBER(xp0)
+		do i1=1,3
+			xp0(:,i1) = xp0(:,i1)*L(i1)
 		end do
-		xp0(:,1) = xp0(:,1) - this%A0*L(1)/N*SIN( 2.0_mp*pi*xp0(:,1)/L(1)*mode ) + 0.5_mp*L(1)
+		xp0(:,1) = xp0(:,1) - this%A0(1)*L(1)/N*SIN( 2.0_mp*pi*xp0(:,1)/L(1)*mode ) + 0.5_mp*L(1)
 
 		!velocity distribution initialize
 !		vp0 = vT*randn(N)

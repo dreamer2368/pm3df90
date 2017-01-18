@@ -55,7 +55,7 @@ contains
 !		real(mp) :: Tf(6)
 !		integer:: N
 !		real(mp) :: xp0(Nd(1)*Nd(2)*Nd(3),3), vp0(Nd(1)*Nd(2)*Nd(3),3), qs(Nd(1)*Nd(2)*Nd(3)), ms(Nd(1)*Nd(2)*Nd(3))
-!		real(mp) :: B0, dB, dJdA, fdB(20), ek(20)
+!??????		real(mp) :: B0, dB, dJdA, fdB(20), ek(20)
 !		integer :: i,j
 !		interface
 !			subroutine QoI(adj,pm,i)
@@ -160,18 +160,17 @@ contains
 		integer, intent(in) :: Ng(3), Nd(3)
 		type(PM3D) :: this
 		type(adjoint) :: adj
-		real(mp) :: Tf=1.6_mp,Ti=0.2_mp,rho_back
+		real(mp) :: Tf=0.8_mp,Ti=0.4_mp,rho_back
 		integer :: N
-		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs(PRODUCT(Nd)), ms(PRODUCT(Nd))
-		real(mp) :: B0=1.0_mp, dB, dJdA, fdB(20)
+		real(mp) :: J0, J1
+		real(mp) :: A0(1), grad(1), dA , fdA(20)
 		integer :: i
 		interface
-			subroutine QoI(adj,pm,i)
+			subroutine QoI(pm,k,J)
 				use modPM3D
-				use modAdj
-				type(adjoint), intent(inout) :: adj
 				type(PM3D), intent(in) :: pm
-				integer, intent(in), optional :: i
+				integer, intent(in) :: k
+				real(mp), intent(inout) :: J
 			end subroutine
 		end interface
 		interface
@@ -202,53 +201,50 @@ contains
 			end subroutine
 		end interface
 		interface
-			subroutine dQoI_dcontrol(adj,pm,dJdA)
+			subroutine dQoI_dcontrol(adj,pm,k,str,grad)
 				use modPM3D
 				use modAdj
 				use constants
 				type(adjoint), intent(in) :: adj
 				type(PM3D), intent(in) :: pm
-				real(mp), intent(out) :: dJdA
+				integer, intent(in) :: k
+				character(len=*), intent(in) :: str
+				real(mp), intent(inout) :: grad(:)
 			end subroutine
 		end interface
 
 		N = PRODUCT(Nd)
-		call buildPM3D(this,Tf,Ti,Ng,1,dir='test')
-		call buildAdjoint(adj,this)
+		A0 = 0.0_mp
+		call buildPM3D(this,Tf,Ti,Ng,1,A=A0,dir='test')
 
 		call twostream_initialize(this,Nd,v0)
-		call forwardsweep(this,Null_input)
+		call forwardsweep(this,control,QoI,J0)
 		call printPlasma(this%r)
+		print *, 'J0: ',J0
 
-		call buildPM3D(this,Tf,Ti,Ng,N,B=B0)
-
-		call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-		call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
-		call QoI(adj,this,0)
-
-		call backward_sweep(adj,this,dQoI,Dsource)
-		call dQoI_dsource(adj,this,dJdA)
-		print *, dJdA
+		call buildAdjoint(adj,this)
+		call backward_sweep(adj,this,grad,dQoI,Dcontrol,dQoI_dcontrol,control)
+		print *, 'grad: ', grad
 		open(unit=301,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
-		write(301) dJdA
+		write(301) grad
 		close(301)
 
-		fdB = (/ ( EXP(-i*1.0_mp), i=1,20 ) /)
+		fdA = (/ ( 10.0_mp**(-i*1.0_mp), i=1,20 ) /)
 		open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
-		write(301) fdB
+		write(301) fdA
 		close(301)
 
 		open(unit=401,file='data/dJdAFD.bin',status='replace',form='unformatted',access='stream')
-		do i=1,size(fdB)
-			dB = fdB(i)
-			this%B0 = B0 + dB
-			print *, 'B = ',this%B0
-			call particle_initialize(this,Nd,v0,xp0,vp0,qs,ms,rho_back)
-			call forwardsweep(this,xp0,vp0,qs,ms,rho_back,source)
-			call QoI(adj,this,1)
-			print *, (adj%J1 - adj%J0)/dB
-			print *, 'error = ', ABS( (dJdA - (adj%J1 - adj%J0)/dB)/dJdA )
-			write(401) (adj%J1 - adj%J0)/dB
+		do i=1,size(fdA)
+			dA = fdA(i)
+			this%A0 = A0 + dA
+			print *, 'A = ',this%A0
+			call twostream_initialize(this,Nd,v0)
+			call forwardsweep(this,control,QoI,J1)
+			print *, 'J1: ',J1
+			print *, 'FD: ',(J1 - J0)/dA
+			print *, 'error = ', ABS( (grad - (J1 - J0)/dA)/grad )
+			write(401) (J1 - J0)/dA
 		end do
 		close(401)
 
@@ -256,230 +252,305 @@ contains
 		call destroyPM3D(this)
 	end subroutine
 
-!	subroutine test_particle_adj2(N,Np,QoI)
-!		integer, intent(in) :: N(3)										!!grid number
-!		integer, intent(in) :: Np										!!number of particles
-!		type(PM3D) :: pm
-!		type(adjoint) :: adj
-!
-!		real(mp) :: Tf = 1.0_mp, Ti = 1.0_mp
-!		real(mp) :: dx(3)												!!grid size
-!		real(mp) :: rho_back, qe, qs(Np), ms(Np)
-!		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
-!		real(mp), dimension(N(1),N(2),N(3)) :: rhs, phi
-!		real(mp), dimension(N(1),N(2),N(3),3) :: Es
-!		real(mp), dimension(Np,3) :: xp, vp, xp1, vp1, dxp, dxps1, dxps2
-!
-!		real(mp) :: J0,J1,dJdxp(Np,3)
-!		real(mp) :: fxp(20)
-!		integer :: i,j,k(2)
-!
-!		interface
-!			subroutine QoI(adj,pm,i)
-!				use modPM3D
-!				use modAdj
-!				type(adjoint), intent(inout) :: adj
-!				type(PM3D), intent(in) :: pm
-!				integer, intent(in), optional :: i
-!			end subroutine
-!		end interface
-!
-!		call buildPM3D(pm,Tf,Ti,N,Np,L=L)
-!		call buildAdjoint(adj,pm)
-!
-!		!particle, mesh setup
-!!		print *, 'Original xp'
-!		do j=1,Np
-!			xp(j,:) = 0.1_mp*L*(/ j, 7*j, 4*j /)
-!!			print *, xp(j,:)
-!		end do
-!		vp = 0.1_mp
-!		qe = -0.1_mp
-!		qs = qe
-!		ms = -qs
-!		rho_back = -qe*pm%p%n/PRODUCT(L)
-!		call setPlasma(pm%p,xp,vp,qs,ms)
-!		call setMesh(pm%m,rho_back)
-!
-!		!particle move
-!		pm%p%xp = pm%p%xp + pm%dt*pm%p%vp
-!		!assignment
-!		call assignMatrix(pm%a,pm%p,pm%m,pm%p%xp)
-!		call chargeAssign(pm%a,pm%p,pm%m)
-!		!field solver
-!		rhs = -pm%m%rho/pm%eps0
-!		call FFTPoisson(pm%m%phi,rhs,pm%m%W)
-!		pm%m%E = - Gradient(pm%m%phi,pm%m%dx,pm%m%ng)
-!		!force assignment
-!		call forceAssign(pm%a,pm%p,pm%m)
-!		!particle accel
-!		pm%p%vp(:,1) = pm%p%vp(:,1) + pm%dt*pm%p%qs/pm%p%ms*pm%p%Ep(:,1)
-!		pm%p%vp(:,2) = pm%p%vp(:,2) + pm%dt*pm%p%qs/pm%p%ms*pm%p%Ep(:,2)
-!		pm%p%vp(:,3) = pm%p%vp(:,3) + pm%dt*pm%p%qs/pm%p%ms*pm%p%Ep(:,3)
-!		!QoI evaluation
-!		call QoI(adj,pm,0)
-!
-!		!Adjoint sensitivity solver
-!		adj%vps = - 2.0_mp*pm%p%vp*pm%dt
-!
-!		adj%Eps(:,1) = pm%p%qs/pm%p%ms*adj%vps(:,1)
-!		adj%Eps(:,2) = pm%p%qs/pm%p%ms*adj%vps(:,2)
-!		adj%Eps(:,3) = pm%p%qs/pm%p%ms*adj%vps(:,3)
-!
-!		call Adj_forceAssign_E(pm%a,adj%Eps,adj%Es)
-!
-!		call FFTAdj(adj%Es,adj%rhos,pm%m%W,pm%m%dx)
-!		adj%rhos = -adj%rhos/pm%eps0
-!
-!		dxps1 = 0.0_mp
-!		dxps2 = 0.0_mp
-!		call Adj_chargeAssign(pm%a,pm%p,pm%m,adj%rhos,dxps1)
-!		call Adj_forceAssign_xp(pm%a,pm%m,pm%m%E,adj%Eps,dxps2)
-!		adj%xps = - pm%dt*( dxps1 + dxps2 )
-!
-!		print *, 'dJdxp'
-!		do i=1,Np
-!			print *, -adj%xps(i,:)/pm%dt
-!		end do
-!		print *, 'dJdvp'
-!		do i=1,Np
-!			print *, -adj%vps(i,:)/pm%dt - adj%xps(i,:)
-!		end do
-!
-!		!FD approximation - choose the component that you want to measure
-!		k = (/1,2/)
-!		open(unit=301,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
-!		write(301) -adj%xps(k(1),k(2))/pm%dt
-!		close(301)
-!		fxp = (/ ( EXP(-i*1.0_mp), i=1,20 ) /)
-!		open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
-!		write(301) ABS( xp(k(1),k(2))*fxp )
-!		close(301)
-!
-!		open(unit=301,file='data/dJdAFD.bin',status='replace',form='unformatted',access='stream')
-!		do i=1,20
-!			dxp = 0.0_mp
-!			dxp(k(1),k(2)) = xp(k(1),k(2))*fxp(i)
-!			xp1 = xp + dxp
-!			call setPlasma(pm%p,xp1,vp,qs,ms)
-!
-!			!particle move
-!			pm%p%xp = pm%p%xp + pm%dt*pm%p%vp
-!			!assignment
-!			call assignMatrix(pm%a,pm%p,pm%m,pm%p%xp)
-!			call chargeAssign(pm%a,pm%p,pm%m)
-!			!field solver
-!			rhs = -pm%m%rho/pm%eps0
-!			call FFTPoisson(pm%m%phi,rhs,pm%m%W)
-!			pm%m%E = - Gradient(pm%m%phi,pm%m%dx,pm%m%ng)
-!			!force assignment
-!			call forceAssign(pm%a,pm%p,pm%m)
-!			!particle accel
-!			pm%p%vp(:,1) = pm%p%vp(:,1) + pm%dt*pm%p%qs/pm%p%ms*pm%p%Ep(:,1)
-!			pm%p%vp(:,2) = pm%p%vp(:,2) + pm%dt*pm%p%qs/pm%p%ms*pm%p%Ep(:,2)
-!			pm%p%vp(:,3) = pm%p%vp(:,3) + pm%dt*pm%p%qs/pm%p%ms*pm%p%Ep(:,3)
-!			!QoI evaluation
-!			call QoI(adj,pm,1)
-!
-!			print *, 'dJdxp(',k(1),',',k(2),')=', (adj%J1-adj%J0)/dxp(k(1),k(2))
-!			print *, 'error = ', ABS( ( -adj%xps(k(1),k(2))/pm%dt - (adj%J1-adj%J0)/dxp(k(1),k(2)) ) )
-!			write(301) (adj%J1-adj%J0)/dxp(k(1),k(2))
-!		end do
-!		close(301)
-!
-!		call destroyPM3D(pm)
-!		call destroyAdjoint(adj)
-!	end subroutine
-!
-!	subroutine test_particle_adj(N,Np)
-!		integer, intent(in) :: N(3)										!!grid number
-!		integer, intent(in) :: Np										!!number of particles
-!		type(plasma) :: p
-!		type(mesh) :: m
-!		type(pmassign) ::a
-!
-!		real(mp) :: dx(3)												!!grid size
-!		real(mp) :: eps0 = 1.0_mp, rho_back, qe, qs(Np), ms(Np)
-!		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
-!		real(mp), dimension(N(1),N(2),N(3)) :: rhs, phi, weight, rhos
-!		real(mp), dimension(N(1),N(2),N(3),3) :: Es
-!		real(mp) :: xp(Np,3), vp(Np,3), dxp, xps(Np,3)
-!
-!		real(mp) :: J0,J1,dJdxp(Np,3)
-!		real(mp) :: fxp = (0.1_mp)**9
-!		integer :: i,j,k(2)
-!
-!		call buildPlasma(p,Np)
-!		call buildMesh(m,L,N)
-!		call buildAssign(a,Np,N)
-!
-!	!particle, mesh setup
+	subroutine test_checkpoint(N,Np,QoI)
+		integer, intent(in) :: N(3)										!!grid number
+		integer, intent(in) :: Np										!!number of particles
+		type(PM3D) :: pm, pm1
+		type(adjoint) :: adj
+
+		real(mp) :: Tf = 1.0_mp, Ti = 1.0_mp
+		real(mp) :: dx(3)												!!grid size
+		real(mp) :: qe, qs, ms
+		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
+		real(mp), dimension(N(1),N(2),N(3)) :: rho_back, rhs, phi
+		real(mp), dimension(N(1),N(2),N(3),3) :: Es
+		real(mp), dimension(Np,3) :: xp, vp, xp1, vp1, dxp, dxps1, dxps2
+
+		real(mp) :: J0,J1,dJdxp(Np,3)
+		real(mp) :: fxp(20)
+		integer :: i,j,k(2)
+
+		interface
+			subroutine QoI(pm,k,J)
+				use modPM3D
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+                real(mp), intent(inout) :: J
+			end subroutine
+		end interface
+
+		call buildPM3D(pm,Tf,Ti,N,1,L=L,dir='adj_test',mod_input=3)
+		call buildPM3D(pm1,Tf,Ti,N,1,L=L,dir='adj_test',mod_input=3)
+
+		!particle, mesh setup
 !		print *, 'Original xp'
-!		do j=1,Np
-!			xp(j,:) = 0.1_mp*L*(/ j, 7*j, 4*j /)
+		do j=1,Np
+			xp(j,:) = 0.1_mp*L*(/ j, 7*j, 4*j /)
 !			print *, xp(j,:)
-!		end do
-!		qe = -0.1_mp
-!		qs = qe
-!		ms = -qs
-!		rho_back = -qe*p%n/PRODUCT(L)
-!		vp = 0.0_mp
-!		call setPlasma(p,xp,vp,qs,ms)
-!		call setMesh(m,rho_back)
-!	!assignment
-!		call assignMatrix(a,p,m,p%xp)
-!		call chargeAssign(a,p,m)
-!	!field solver
-!		rhs = -m%rho/eps0
-!		call FFTPoisson(m%phi,rhs,m%W)
-!		m%E = - Gradient(m%phi,m%dx,m%ng)
-!	!QoI evaluation
-!		weight = 0.0_mp
-!		weight(2*N(1)/5:3*N(1)/5,2*N(2)/5:3*N(2)/5,2*N(3)/5:3*N(3)/5) = 1.0_mp
-!		J0 = SUM( PRODUCT(m%dx)*weight*(m%E(:,:,:,1)**2 + m%E(:,:,:,2)**2 + m%E(:,:,:,3)**2) )
-!		print *, 'J0 = ', J0
-!
-!	!Adjoint sensitivity solver
-!		do i=1,3
-!			Es(:,:,:,i) = -2.0_mp*PRODUCT(m%dx)*weight*m%E(:,:,:,i)
-!		end do
-!
-!		call FFTAdj(Es,rhos,m%W,m%dx)
-!		rhos = -rhos/eps0
-!
-!		call Adj_chargeAssign(a,p,m,rhos,xps)
-!
-!		print *, 'dJdxp'
-!		do i=1,Np
-!			print *, xps(i,:)
-!		end do
-!
-!	!FD approximation - choose the component that you want to measure
-!		k = (/1,2/)
-!		dxp = xp(k(1),k(2))*fxp
-!		xp(k(1),k(2)) = xp(k(1),k(2)) + dxp
-!		print *, 'Perturbed xp'
-!		do j=1,Np
+		end do
+		vp = 0.1_mp
+		qe = -0.1_mp
+		qs = qe
+		ms = -qs
+        call buildSpecies(pm%p(1),Np,qs,ms,1.0_mp)
+		call setSpecies(pm%p(1),Np,xp,vp)
+		rho_back = -qe*pm%p(1)%np/PRODUCT(L)
+		call setMesh(pm%m,rho_back)
+
+        call buildSpecies(pm1%p(1),Np,qs,ms,1.0_mp)
+		rho_back = -qe*pm1%p(1)%np/PRODUCT(L)
+		call setMesh(pm1%m,rho_back)
+
+        call forwardsweep(pm,Null_input,QoI,J0)
+        call printPlasma(pm%r)
+        print *, pm%p(1)%xp
+        print *, pm%p(1)%vp
+        print *, pm%p(1)%Ep
+
+        call checkpoint(pm1,pm%r,pm%nt,Null_input)
+        print *, pm%p(1)%xp
+        print *, pm%p(1)%vp
+        print *, pm%p(1)%Ep
+
+		call destroyPM3D(pm)
+		call destroyPM3D(pm1)
+	end subroutine
+
+	subroutine test_particle_adj3(N,Np,QoI,dQoI)
+		integer, intent(in) :: N(3)										!!grid number
+		integer, intent(in) :: Np										!!number of particles
+		type(PM3D) :: pm
+		type(adjoint) :: adj
+
+		real(mp) :: Tf = 0.2_mp, Ti = 0.2_mp
+		real(mp) :: dx(3)												!!grid size
+		real(mp) :: qe, qs, ms
+		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
+		real(mp), dimension(N(1),N(2),N(3)) :: rho_back, rhs, phi
+		real(mp), dimension(N(1),N(2),N(3),3) :: Es
+		real(mp), dimension(Np,3) :: xp, vp, xp1, vp1, dxp, dxps1, dxps2
+
+		real(mp) :: A(3), J0,J1,grad(12),dJdxp(Np,3)
+		real(mp) :: fxp(20)
+		integer :: i,j,k(2)
+
+		interface
+			subroutine QoI(pm,k,J)
+				use modPM3D
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+                real(mp), intent(inout) :: J
+			end subroutine
+		end interface
+
+		interface
+			subroutine dQoI(adj,pm,k)
+				use modPM3D
+				use modAdj
+				type(adjoint), intent(inout) :: adj
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+			end subroutine
+		end interface
+
+    A=(/1.0_mp,1.0_mp,0.0_mp/)
+
+		call buildPM3D(pm,Tf,Ti,N,1,L=L,A=A,dir='adj_test')
+
+		!particle, mesh setup
+!		print *, 'Original xp'
+		do j=1,Np
+			xp(j,:) = 0.1_mp*L*(/ j, 7*j, 4*j /)
 !			print *, xp(j,:)
-!		end do
-!		call setPlasma(p,xp,vp,qs,ms)
-!	!assignment
-!		call assignMatrix(a,p,m,p%xp)
-!		call chargeAssign(a,p,m)
-!	!field solver
-!		rhs = -m%rho/eps0
-!		call FFTPoisson(m%phi,rhs,m%W)
-!		m%E = - Gradient(m%phi,m%dx,m%ng)
-!	!QoI re-evaluation, Sensitivity approximation
-!		J1 = SUM( PRODUCT(m%dx)*weight*(m%E(:,:,:,1)**2 + m%E(:,:,:,2)**2 + m%E(:,:,:,3)**2) )
-!		print *, 'J1 = ', J1
-!		print *, 'dJdxp(',k(1),',',k(2),')=', (J1-J0)/dxp
-!
-!		call destroyPlasma(p)
-!		call destroyMesh(m)
-!		call destroyAssign(a)
-!	end subroutine
-!
+		end do
+		vp = 0.1_mp
+		qe = -0.1_mp
+		qs = qe
+		ms = -qs
+        call buildSpecies(pm%p(1),Np,qs,ms,1.0_mp)
+		call setSpecies(pm%p(1),Np,xp,vp)
+		rho_back = -qe*pm%p(1)%np/PRODUCT(L)
+		call setMesh(pm%m,rho_back)
+
+		call forwardsweep(pm,Null_input,QoI,J0)
+
+		call buildAdjoint(adj,pm)
+    call backward_sweep(adj,pm,grad,dQoI,Null_Dinput,testdJdA,testControl)
+
+		print *, 'dJdxp'
+    print *, grad(1:3)
+    print *, grad(4:6)
+		print *, 'dJdvp'
+    print *, grad(7:9)
+    print *, grad(10:12)
+
+		!FD approximation - choose the component that you want to measure
+		k = (/2,2/)
+		open(unit=301,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
+		write(301) -adj%p(1)%xp(k(1),k(2))/pm%dt
+		close(301)
+		fxp = (/ ( 10.0_mp**(-i*1.0_mp), i=1,20 ) /)
+		open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
+		write(301) ABS( xp(k(1),k(2))*fxp )
+		close(301)
+
+		open(unit=301,file='data/dJdAFD.bin',status='replace',form='unformatted',access='stream')
+		do i=1,20
+        A=(/1.0_mp*k(1),1.0_mp*k(2),fxp(i)/)
+        deallocate(pm%A0)
+        allocate(pm%A0(3))
+        pm%A0 = A
+        print *, pm%A0
+        call setSpecies(pm%p(1),Np,xp,vp)
+
+        call forwardsweep(pm,testControl,QoI,J1)
+
+        dxp = 0.0_mp
+        dxp(k(1),k(2)) = xp(k(1),k(2))*fxp(i)
+
+			print *, 'dJdxp(',k(1),',',k(2),')=', (J1-J0)/dxp(k(1),k(2))
+			print *, 'error = ', ABS( ( -adj%p(1)%xp(k(1),k(2))/pm%dt - (J1-J0)/dxp(k(1),k(2)) ) )
+			write(301) (J1-J0)/dxp(k(1),k(2))
+		end do
+		close(301)
+
+		call destroyPM3D(pm)
+		call destroyAdjoint(adj)
+	end subroutine
+
+	subroutine test_particle_adj2(N,Np,QoI)
+		integer, intent(in) :: N(3)										!!grid number
+		integer, intent(in) :: Np										!!number of particles
+		type(PM3D) :: pm
+		type(adjoint) :: adj
+
+		real(mp) :: Tf = 1.0_mp, Ti = 1.0_mp
+		real(mp) :: dx(3)												!!grid size
+		real(mp) :: qe, qs, ms
+		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
+		real(mp), dimension(N(1),N(2),N(3)) :: rho_back, rhs, phi
+		real(mp), dimension(N(1),N(2),N(3),3) :: Es
+		real(mp), dimension(Np,3) :: xp, vp, xp1, vp1, dxp, dxps1, dxps2
+
+		real(mp) :: J0,J1,dJdxp(Np,3)
+		real(mp) :: fxp(20)
+		integer :: i,j,k(2)
+
+		interface
+			subroutine QoI(pm,k,J)
+				use modPM3D
+				type(PM3D), intent(in) :: pm
+				integer, intent(in) :: k
+                real(mp), intent(inout) :: J
+			end subroutine
+		end interface
+
+		call buildPM3D(pm,Tf,Ti,N,1,L=L,dir='adj_test')
+
+		!particle, mesh setup
+!		print *, 'Original xp'
+		do j=1,Np
+			xp(j,:) = 0.1_mp*L*(/ j, 7*j, 4*j /)
+!			print *, xp(j,:)
+		end do
+		vp = 0.1_mp
+		qe = -0.1_mp
+		qs = qe
+		ms = -qs
+        call buildSpecies(pm%p(1),Np,qs,ms,1.0_mp)
+		call setSpecies(pm%p(1),Np,xp,vp)
+		rho_back = -qe*pm%p(1)%np/PRODUCT(L)
+		call setMesh(pm%m,rho_back)
+
+		!particle move
+        call move(pm%p(1),pm%dt)
+		!assignment
+        call assignMatrix(pm%a(1),pm%p(1),pm%m,pm%p(1)%xp)
+		call chargeAssign(pm%a,pm%p,pm%m)
+		!field solver
+		rhs = -pm%m%rho/pm%eps0
+		call FFTPoisson(pm%m%phi,rhs,pm%m%W)
+		pm%m%E = - Gradient(pm%m%phi,pm%m%dx,pm%m%ng)
+		!force assignment
+		call forceAssign(pm%a(1),pm%p(1),pm%m)
+		!particle accel
+        call accel(pm%p(1),pm%dt)
+		!QoI evaluation
+		call QoI(pm,pm%nt,J0)
+
+		call buildAdjoint(adj,pm)
+        call reset_Dadj(adj)
+
+		!Adjoint sensitivity solver
+		adj%p(1)%vp = - 2.0_mp*pm%p(1)%vp*pm%dt
+        call Adj_accel(adj)
+
+		adj%p(1)%Ep = pm%p(1)%qs/pm%p(1)%ms*adj%p(1)%vp
+
+        adj%m%E = 0.0_mp
+		call Adj_forceAssign_E(pm%a(1),adj%p(1)%Ep,adj%m%E)
+        adj%m%E = adj%m%E + adj%dm%E
+
+		call FFTAdj(adj%m%E,adj%m%rho,pm%m%W,pm%m%dx)
+		adj%m%rho = -adj%m%rho/pm%eps0
+
+		call Adj_chargeAssign(pm%a(1),pm%p(1),pm%m,adj%m%rho,adj%dp(1)%xp)
+		call Adj_forceAssign_xp(pm%a(1),pm%m,pm%m%E,adj%p(1)%Ep,adj%dp(1)%xp)
+      call Adj_move(adj)
+!		adj%xps = - pm%dt*( dxps1 + dxps2 )
+
+		print *, 'dJdxp'
+		do i=1,Np
+			print *, -adj%p(1)%xp(i,:)/pm%dt
+		end do
+		print *, 'dJdvp'
+		do i=1,Np
+			print *, -adj%p(1)%vp(i,:)/pm%dt - adj%p(1)%xp(i,:)
+		end do
+
+		!FD approximation - choose the component that you want to measure
+		k = (/1,3/)
+		open(unit=301,file='data/dJdA.bin',status='replace',form='unformatted',access='stream')
+		write(301) -adj%p(1)%xp(k(1),k(2))/pm%dt
+		close(301)
+		fxp = (/ ( 10.0_mp**(-i*1.0_mp), i=1,20 ) /)
+		open(unit=301,file='data/dA.bin',status='replace',form='unformatted',access='stream')
+		write(301) ABS( xp(k(1),k(2))*fxp )
+		close(301)
+
+		open(unit=301,file='data/dJdAFD.bin',status='replace',form='unformatted',access='stream')
+		do i=1,20
+			dxp = 0.0_mp
+			dxp(k(1),k(2)) = xp(k(1),k(2))*fxp(i)
+			xp1 = xp + dxp
+			call setSpecies(pm%p(1),Np,xp1,vp)
+
+			!particle move
+            call move(pm%p(1),pm%dt)
+			!assignment
+			call assignMatrix(pm%a(1),pm%p(1),pm%m,pm%p(1)%xp)
+			call chargeAssign(pm%a,pm%p,pm%m)
+			!field solver
+			rhs = -pm%m%rho/pm%eps0
+			call FFTPoisson(pm%m%phi,rhs,pm%m%W)
+			pm%m%E = - Gradient(pm%m%phi,pm%m%dx,pm%m%ng)
+			!force assignment
+			call forceAssign(pm%a(1),pm%p(1),pm%m)
+			!particle accel
+            call accel(pm%p(1),pm%dt)
+			!QoI evaluation
+            call QoI(pm,pm%nt,J1)
+
+			print *, 'dJdxp(',k(1),',',k(2),')=', (J1-J0)/dxp(k(1),k(2))
+			print *, 'error = ', ABS( ( -adj%p(1)%xp(k(1),k(2))/pm%dt - (J1-J0)/dxp(k(1),k(2)) ) )
+			write(301) (J1-J0)/dxp(k(1),k(2))
+		end do
+		close(301)
+
+		call destroyPM3D(pm)
+		call destroyAdjoint(adj)
+	end subroutine
+
 	subroutine twostream(v0,Ng,Nd)
 		real(mp), intent(in) :: v0
 		integer, intent(in) :: Ng(3), Nd(3)
@@ -492,6 +563,7 @@ contains
 		call buildPM3D(this,Tf,Ti,Ng,1,dir='test')
 
 		call twostream_initialize(this,Nd,v0)
+
 		call forwardsweep(this,Null_input)
 		call printPlasma(this%r)
 

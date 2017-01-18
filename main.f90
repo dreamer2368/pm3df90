@@ -15,9 +15,12 @@ program main
 
 !	call twoParticle_rep_AdjTest(0.2_mp,(/32,32,32/),MKE,dMKE,IC_wave,dIC_wave,dIC_wave_dB)
 !	call twoParticleTraj(1.0_mp,(/32,32,32/))
-	call twostream(0.2_mp,(/64,64,64/),(/2**8,2**5,2**5/))
-!	call test_fullAdjoint(0.2_mp,(/32,32,32/),(/2**8,2**5,2**5/),MPE,dMPE,IC_wave,dIC_wave,dIC_wave_dB)
+!	call twostream(0.2_mp,(/64,64,64/),(/2**8,2**5,2**5/))
+	call test_fullAdjoint(0.2_mp,(/32,32,32/),(/2**8,2**5,2**5/),MKE,dMKE,V_Th,dV_Th,dV_Th_dB)
+!	call test_particle_adj3((/64,64,64/),2,TestQoI_singleStep,dTestQoI_singleStep)
 !	call test_particle_adj2((/64,64,64/),2,TestQoI_singleStep)
+!	call test_checkpoint((/64,64,64/),2,TestQoI_singleStep)
+!	call test_checkpoint((/64,64,64/),2,TestQoI_singleStep)
 !	call twoParticle_att_AdjTest(1.0_mp,(/32,32,32/),MKE,dMKE,Orbit_radius,dOrbit,dOrbit_dB)
 !	call EfieldKernel
 !	call LandauTraj((/64,64,64/),(/2**7,2**7,2**7/))

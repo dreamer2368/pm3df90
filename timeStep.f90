@@ -41,17 +41,17 @@ contains
 !		call setMesh(this%m,rho_back)
 
 		!Time stepping
-		call halfStep(this)
+!		call halfStep(this)
 		if( present(J) ) then
 			call QoI(this,k,J)
 		end if
-		call recordPlasma(this%r,this,k)									
+		call recordPlasma(this%r,this,k)							!x_0, v_1/2							
 		do k=1,this%nt
 			call updatePlasma(this,control,k)
 			if( present(J) ) then
 				call QoI(this,k,J)
 			end if
-			call recordPlasma(this%r,this,k)						
+			call recordPlasma(this%r,this,k)						!x_k, v_{k+1/2}
 		end do
 	end subroutine
 
@@ -95,7 +95,7 @@ contains
 		integer, intent(in) :: k
 		integer :: i, j,Ns
 		real(mp) :: rhs(this%ng(1),this%ng(2),this%ng(3))
-		real(mp) :: dt,L(3),B
+		real(mp) :: dt,L(3)
 		interface
 			subroutine control(pm,k,str)
 				use modPM3D
@@ -107,7 +107,6 @@ contains
 		dt = this%dt
 		L = this%L
 		Ns = this%ns
-		B = this%B0
 
 !		call recordPlasma(this%r,this%p,this%m,k)									!record for n=0~(Nt-1) : xp_(k-1 and vp_(k-1/2)
 
