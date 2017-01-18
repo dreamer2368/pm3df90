@@ -3,3 +3,8 @@
 /data/*.bin
 .DS_Store
 *.out
+*.aux
+*.log
+*.pdf
+*.toc
+*.gz
