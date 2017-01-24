@@ -17,6 +17,80 @@ contains
 		end do
 	end function
 
+	subroutine buildDebye(this,Tf,Ld,Nd,Ng,vT,mod_input)
+		type(PM3D), intent(inout) :: this
+		real(mp), intent(in) :: Tf, Ld, vT
+		integer, intent(in) :: Nd,Ng(3)
+		integer, intent(in), optional :: mod_input
+		real(mp) :: Q = 1.0_mp
+		real(mp), dimension(Nd*Nd*Nd,3) :: xp0, vp0
+		real(mp), dimension(Ng(1),Ng(2),Ng(3)) :: rho_back
+		real(mp) :: xg(Ng(1)), yg(Ng(2)), zg(Ng(3))
+		real(mp) :: qs,ms,spwt
+		real(mp) :: w
+		integer :: nseed,i,i1,i2,i3
+		integer, allocatable :: seed(:)
+
+		!Parameter setup
+		if( present(mod_input) ) then
+			call buildPM3D(this,Tf,1.0_mp,Ng,1,dt=0.1_mp,L=(/Ld,Ld,Ld/),dir='debye',mod_input=mod_input)
+		else
+			call buildPM3D(this,Tf,1.0_mp,Ng,1,dt=0.1_mp,L=(/Ld,Ld,Ld/),dir='debye')
+		end if
+		qs = -1.0_mp
+		ms = 1.0_mp
+		spwt = Ld*Ld*Ld/Nd/Nd/Nd														!rho_0 = 1
+		call buildSpecies(this%p(1),Nd*Nd*Nd,qs,ms,spwt)
+
+		!Random seed
+		call RANDOM_SEED(size=nseed)
+		allocate(seed(nseed))
+		seed = 127*(/ ( i, i=1,nseed ) /)
+		call RANDOM_SEED(put=seed)
+		deallocate(seed)
+
+		!spatial distribution initialize
+		do i3 = 1,Nd
+			do i2 = 1,Nd
+				do i1 = 1,Nd
+					xp0(i1+Nd*(i2-1)+Nd*Nd*(i3-1),:) =	&
+								(/ (i1-1)*Ld/Nd,(i2-1)*Ld/Nd,(i3-1)*Ld/Nd /)
+				end do
+			end do
+		end do
+
+		!Initial spatial distribution: uniformly-random
+!		call RANDOM_NUMBER(xp0)
+!		xp0 = xp0*Ld
+
+		!Initial velocity distribution: Maxwell distribution ~ N(0,0.1^2)
+		do i=1,3
+			vp0(:,i) = randn(Nd*Nd*Nd)
+		end do
+		vp0 = vp0*vT
+
+		!Set up species with initial distribution
+		call setSpecies(this%p(1),Nd*Nd*Nd,xp0,vp0)
+
+		!Grid space
+		xg =	(/ ( (i-0.5_mp)*Ld/Ng(1),i=1,Ng(1) ) /)
+		yg =	(/ ( (i-0.5_mp)*Ld/Ng(2),i=1,Ng(2) ) /)
+		zg =	(/ ( (i-0.5_mp)*Ld/Ng(3),i=1,Ng(3) ) /)
+
+		!Set up fixed background charge: Gaussian bump
+		w = Ld/20.0_mp
+		rho_back = 1.0_mp - Q/Ld/Ld/Ld
+		do i3=1,Ng(3)
+			do i2=1,Ng(2)
+				do i1=1,Ng(1)
+					rho_back(i1,i2,i3) = rho_back(i1,i2,i3) + Q/SQRT(8.0_mp*pi*pi*pi)/w/w/w*	&
+														EXP( -((xg(i1)-Ld/2.0_mp)**2+(yg(i2)-Ld/2.0_mp)**2+(zg(i3)-Ld/2.0_mp)**2)/2.0_mp/w/w )
+				end do
+			end do
+		end do
+		call setMesh(this%m,rho_back)
+	end subroutine
+
 	subroutine twostream_initialize(this,Nd,v0)			!generate initial distribution
 		type(PM3D), intent(inout) :: this
 		integer, intent(in) :: Nd(3)

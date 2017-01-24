@@ -14,12 +14,6 @@ module modPM3D
 
 		integer, allocatable :: np(:,:)
 
-!		real(mp), allocatable :: xpdata(:,:,:)
-!		real(mp), allocatable :: vpdata(:,:,:)
-!		real(mp), allocatable :: xpsdata(:,:,:)
-!		real(mp), allocatable :: vpsdata(:,:,:)
-
-!		real(mp), allocatable :: Epdata(:,:,:)
 		real(mp), allocatable :: Edata(:,:,:,:,:)
 		real(mp), allocatable :: rhodata(:,:,:,:)
 		real(mp), allocatable :: phidata(:,:,:,:)
@@ -127,12 +121,6 @@ contains
 		this%ng = ng
 		this%mod_r = mod_r
 
-!		allocate(this%xpdata(n,3,nt))
-!		allocate(this%vpdata(n,3,nt))
-!		allocate(this%xpsdata(n,3,nt))
-!		allocate(this%vpsdata(n,3,nt))
-!		allocate(this%Epdata(n,3,nt))
-
 		allocate(this%np(ns,nr))
 		allocate(this%Edata(ng(1),ng(2),ng(3),3,nr))
 		allocate(this%rhodata(ng(1),ng(2),ng(3),nr))
@@ -157,9 +145,11 @@ contains
 
 		call system('mkdir -p data/'//this%dir//'/xp')
 		call system('mkdir -p data/'//this%dir//'/vp')
+!		call system('mkdir -p data/'//this%dir//'/Ep')
 
 		call system('rm data/'//this%dir//'/xp/*.*')
 		call system('rm data/'//this%dir//'/vp/*.*')
+!		call system('rm data/'//this%dir//'/Ep/*.*')
 	end subroutine
 
 	subroutine destroyRecord(this)

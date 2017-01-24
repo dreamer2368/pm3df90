@@ -54,7 +54,7 @@ contains
 	end subroutine
 
 	subroutine destroySpecies(this)
-		class(species), intent(inout) :: this
+		type(species), intent(inout) :: this
 
 		if( allocated(this%xp) ) then
 			deallocate(this%xp)

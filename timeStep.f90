@@ -41,7 +41,7 @@ contains
 !		call setMesh(this%m,rho_back)
 
 		!Time stepping
-!		call halfStep(this)
+		call halfStep(this)
 		if( present(J) ) then
 			call QoI(this,k,J)
 		end if

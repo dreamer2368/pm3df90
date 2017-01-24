@@ -32,7 +32,7 @@ contains
 !============Mean Efield Energy======================
 
 	subroutine MPE(pm,k,J)
-		type(PM3D), intent(in) :: pm
+		type(PM3D), intent(inout) :: pm
 		integer, intent(in) :: k
 		real(mp), intent(inout) :: J
 
@@ -72,6 +72,44 @@ contains
 		if( k.eq.pm%nt ) then
 			adj%p(1)%vp = - 2.0_mp*pm%p(1)%vp*pm%dt
 		end if
+	end subroutine
+
+!=============E-field Probe : measure E-field at positions
+
+	subroutine E_probe(pm,i,J)
+		type(PM3D), intent(in) :: pm
+		integer, intent(in) :: i
+		real(mp), intent(inout) :: J
+		type(species) :: probe
+		type(pmAssign) :: a
+		real(mp), dimension(3,3) :: xp0, vp0
+		integer :: k
+		!first probe position
+		xp0(1,:) = (/pm%L(1)/8.0_mp,0.0_mp,0.0_mp/)
+		!second probe position
+		xp0(2,:) = (/0.0_mp,pm%L(1)/8.0_mp,0.0_mp/)
+		!third probe position
+		xp0(3,:) = (/0.0_mp,0.0_mp,pm%L(1)/8.0_mp/)
+		!set zero velocity
+		vp0 = 0.0_mp
+
+		call buildSpecies(probe,3,1.0_mp,1.0_mp,1.0_mp)
+		call setSpecies(probe,3,xp0,vp0)
+
+		!locate probes
+		call buildAssign(a,pm%m%ng)
+		call assignMatrix(a,probe,pm%m,probe%xp)
+
+		!measure E-field
+		call forceAssign(a,probe,pm%m)
+
+		do k=1,3
+			print *, k,'-th probe at (',probe%xp(k,1),',',probe%xp(k,2),',',probe%xp(k,3),')'
+			print *, '            = E(',probe%Ep(k,1),',',probe%Ep(k,2),',',probe%Ep(k,3),')'
+		end do
+
+		call destroySpecies(probe)
+		call destroyAssign(a)
 	end subroutine
 
 end module

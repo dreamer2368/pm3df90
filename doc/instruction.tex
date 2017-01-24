@@ -81,8 +81,12 @@
 
 \def\eps{\varepsilon}
 
+\newcommand{\bv}{\mathbf{v}}
+\newcommand{\bx}{\mathbf{x}}
 \newcommand{\vp}{\mathbf{v}_p}
 \newcommand{\xp}{\mathbf{x}_p}
+\newcommand{\vq}{\mathbf{v}_q}
+\newcommand{\xq}{\mathbf{x}_q}
 \newcommand{\vps}{\mathbf{v}_p^*}
 \newcommand{\xps}{\mathbf{x}_p^*}
 \newcommand{\Es}{\mathbf{E}^*}
@@ -99,6 +103,7 @@
 \newcommand{\cH}{\mathcal{H}}
 \newcommand{\cJ}{\mathcal{J}}
 \newcommand{\cL}{\mathcal{L}}
+\newcommand{\cF}{\mathcal{F}}
 \newcommand{\cD}{\mathcal{D}}
 
 \newcommand{\timesum}{\sum\limits_{n=0}^{N_t-1}}
@@ -113,6 +118,14 @@
 \newcommand{\mysum}{\sum\limits_{p=1}^N\int_0^{T}}
 \newcommand{\myiint}{\int_0^{T}\int_0^L}
 \newcommand{\dt}{\; dt}
+
+\newcommand{\eqsp}[2]{
+\begin{equation#1}
+\begin{split}
+#2
+\end{split}
+\end{equation#1}
+}
 
 \def\bdash{\hbox{\drawline{4}{.5}\spacce{2}}}
 \def\spacce#1{\hskip #1pt}
@@ -155,8 +168,8 @@
 \subsection*{Adjoints blocks}
 \addcontentsline{toc}{subsection}{Adjoint blocks}
 
-\begin{multicols}{2}
-$\cH$ blocks : $n=1,\cdots,N_t$
+\begin{itemize}
+\item $\cH$ blocks : $n=1,\cdots,N_t$
 \begin{equation*}
 \begin{split}
 \xph^{n}\cdot\left[ \frac{\xp^{n} - \xp^{n-1}}{\Dt} - \vp^{n-1/2} \right] &= 0\\
@@ -167,22 +180,20 @@ $\cH$ blocks : $n=1,\cdots,N_t$
 \vph^{n+1/2}\cdot\left[ \frac{\vp^{n+1/2} - \vp^{n-1/2}}{\Dt} - \frac{q_p}{m_p}\mathbf{E}_p^{n} \right] &= 0
 \end{split}
 \end{equation*}
-Adjoint equation : $n=1,\cdots,N_t$
+$n=0,\cdots,N_t$ timesteps are saved.
+\item Adjoint equation : $n=1,\cdots,N_t$
 \begin{equation*}
 \begin{split}
-\frac{\vph^{n+3/2} - \vph^{n+1/2}}{-\Dt} - \xph^{n+1} &= 0\qquad:\delta \vp^{n+1/2}\\
-\Eh_{p}^{n} - \frac{q_p}{m_p}\vph^{n+1/2} &= 0\qquad:\delta E_p^{n}\\
-\Eh_{i}^{n} - \sum\limits_p \Eh_{p}^{n}g\left( \mathbf{x}_{i}, \xp^{n} \right) &= 0\qquad:\delta E_i^{n}\\
-\phih_i^{n} - \mathbf{D}\cdot\Eh_i^{n} &= 0\qquad:\delta \phi_i^{n}\\
-\rhoh_i^{n} + \frac{1}{\varepsilon_0}K^{-1}\phih_i^{n} &= 0\qquad:\delta \rho_i^{n}\\
+\frac{\vph^{n+3/2} - \vph^{n+1/2}}{-\Dt} - \xph^{n+1} + \Dpartial{\cJ}{\vp^{n+1/2}} &= 0\qquad:\delta \vp^{n+1/2}\\
+\Eh_{p}^{n} - \frac{q_p}{m_p}\vph^{n+1/2} + \Dpartial{\cJ}{\mathbf{E}_p^{n}} &= 0\qquad:\delta E_p^{n}\\
+\Eh_{i}^{n} - \sum\limits_p \Eh_{p}^{n}g\left( \mathbf{x}_{i}, \xp^{n} \right) + \Dpartial{\cJ}{\mathbf{E}_i^{n}} &= 0\qquad:\delta E_i^{n}\\
+\phih_i^{n} - \mathbf{D}\cdot\Eh_i^{n} + \Dpartial{\cJ}{\phi_i^{n}} &= 0\qquad:\delta \phi_i^{n}\\
+\rhoh_i^{n} + \frac{1}{\varepsilon_0}K^{-1}\phih_i^{n} + \Dpartial{\cJ}{\vp^{n+1/2}} + \Dpartial{\cJ}{\rho_i^{n}} &= 0\qquad:\delta \rho_i^{n}\\
 \frac{\xph^{n+1} - \xph^{n}}{-\Dt} + \sum\limits_{i}\rhoh_{i}^{n}\cdot\left( -\Dpartial{f}{\xp^{n}} \right) + &\\
-\qquad\sum\limits_{i} \Eh_{p}^{n}\circ\mathbf{E}_{i}^{n}\circ\left( -\Dpartial{g}{\xp^{n}} \right) &= 0\qquad:\delta \xp^{n}
+\qquad\sum\limits_{i} \Eh_{p}^{n}\circ\mathbf{E}_{i}^{n}\circ\left( -\Dpartial{g}{\xp^{n}} \right) + \Dpartial{\cJ}{\xp^{n}} &= 0\qquad:\delta \xp^{n}
 \end{split}
 \end{equation*}
-\end{multicols}
 where $\circ$ is dimension-wise multiplication with 3-dimension vectors.
-$n=0,\cdots,N_t-1$ timesteps are saved.
-\begin{itemize}
 \item Adjoint in initial timestep ($n=0$)
 \begin{equation}
 \frac{\xph^1-\xph^0}{-\Dt}\cdot\delta \xp^0 = 0\qquad\qquad \left[ \frac{\vph^{3/2} - \vph^{1/2}}{-\Dt} - \xph^1 \right]\cdot\delta \vp^{1/2}=0

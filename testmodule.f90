@@ -569,6 +569,54 @@ contains
 
 		call destroyPM3D(this)
 	end subroutine
+
+	subroutine test_FFTPoisson
+		integer, parameter :: Ng(3) = (/32,32,32/)
+		real(mp), parameter :: L(3) = (/5.0_mp,5.0_mp,5.0_mp/)
+		type(mesh) :: m
+		real(mp), dimension(Ng(1),Ng(2),Ng(3)) :: rhs
+		real(mp) :: w(3), xg(Ng(1)), yg(Ng(2)), zg(Ng(3))
+		integer :: i,i1,i2,i3
+
+		call buildMesh(m,L,Ng)
+!		rhs = -1.0_mp/PRODUCT(L)
+!		rhs(Ng(1)/2,Ng(2)/2,Ng(3)/2) = -1.0_mp/PRODUCT(L) + 1.0_mp/PRODUCT(m%dx)
+
+		!Grid space
+		xg =	(/ ( (i-0.5_mp)*L(1)/Ng(1),i=1,Ng(1) ) /)
+		yg =	(/ ( (i-0.5_mp)*L(2)/Ng(2),i=1,Ng(2) ) /)
+		zg =	(/ ( (i-0.5_mp)*L(3)/Ng(3),i=1,Ng(3) ) /)
+
+		!Set up fixed background charge: Gaussian bump
+		w = L/20.0_mp
+		rhs = -1.0_mp/PRODUCT(L)
+		do i3=1,Ng(3)
+			do i2=1,Ng(2)
+				do i1=1,Ng(1)
+					rhs(i1,i2,i3) = rhs(i1,i2,i3) + 1.0_mp/SQRT(8.0_mp*pi*pi*pi)/PRODUCT(w)*	&
+														EXP( -((xg(i1)-L(1)/2.0_mp)**2+(yg(i2)-L(2)/2.0_mp)**2+(zg(i3)-L(3)/2.0_mp)**2)/2.0_mp/w(1)/w(1) )
+				end do
+			end do
+		end do
+
+		call FFTPoisson(m%phi,rhs,m%W)
+		m%E = Gradient(m%phi,m%dx,m%ng)
+
+		open(unit=300,file='data/test/record',status='replace')
+		open(unit=301,file='data/test/rho.bin',status='replace',form='unformatted',access='stream')
+		open(unit=302,file='data/test/phi.bin',status='replace',form='unformatted',access='stream')
+		open(unit=303,file='data/test/E.bin',status='replace',form='unformatted',access='stream')
+		write(300,*) m%ng, m%L
+		write(301) rhs
+		write(302) m%phi
+		write(303) m%E
+		close(300)
+		close(301)
+		close(302)
+		close(303)
+
+		call destroyMesh(m)
+	end subroutine
 !
 !	subroutine test_FFTPoisson_adj(N,Nf)
 !		integer, intent(in) :: N(3)										!!grid number

@@ -35,7 +35,7 @@ contains
 	subroutine assignMatrix(this,p,m,xp)	!apply BC and create assignment matrix
 		type(pmAssign), intent(inout) :: this
 		type(species), intent(inout) :: p
-		type(mesh), intent(inout) :: m
+		type(mesh), intent(in) :: m
 		real(mp), intent(inout) :: xp(:,:)
 		integer :: i, k, np
 		integer :: g1
@@ -123,7 +123,7 @@ contains
 	subroutine forceAssign(this,p,m)
 		type(pmAssign), intent(inout) :: this
 		type(species), intent(inout) :: p
-		type(mesh), intent(inout) :: m
+		type(mesh), intent(in) :: m
 		integer :: i,j
 
 		p%Ep = 0.0_mp
