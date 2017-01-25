@@ -16,7 +16,7 @@ program main
 !	call twoParticle_rep_AdjTest(0.2_mp,(/32,32,32/),MKE,dMKE,IC_wave,dIC_wave,dIC_wave_dB)
 !	call twoParticleTraj(1.0_mp,(/32,32,32/))
 !	call twostream(0.2_mp,(/64,64,64/),(/2**8,2**5,2**5/))
-!	call test_fullAdjoint(0.2_mp,(/32,32,32/),(/2**8,2**5,2**5/),MKE,dMKE,V_Th,dV_Th,dV_Th_dB)
+	call test_fullAdjoint(0.2_mp,(/32,32,32/),(/2**8,2**5,2**5/),MKE,dMKE,V_Th,dV_Th,dV_Th_dB)
 !	call test_particle_adj3((/64,64,64/),2,TestQoI_singleStep,dTestQoI_singleStep)
 !	call test_particle_adj2((/64,64,64/),2,TestQoI_singleStep)
 !	call test_checkpoint((/64,64,64/),2,TestQoI_singleStep)
@@ -30,7 +30,7 @@ program main
 !	call Compare_Traj_Landau(1.0_mp,(/32,32,32/),(/2**7,2**7,2**7/),V_Th ,EXP(-5.0_mp),EXP(-10.0_mp))
 !	call Debye_shielding
 !	call test_FFTPoisson
-   call Debye_characterization(Debye_length)
+!   call Debye_characterization(Debye_length)
 
 	call cpu_time(finish)
 

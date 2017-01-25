@@ -33,12 +33,12 @@ contains
 		allocate(this%p(pm%ns))
 		allocate(this%dp(pm%ns))
 		do i=1,pm%ns
-			call buildSpecies(this%p(i),pm%p(i)%np,pm%p(i)%qs,pm%p(i)%ms,pm%p(i)%spwt)
-			call buildSpecies(this%dp(i),pm%p(i)%np,0.0_mp,0.0_mp,0.0_mp)
+			call buildSpecies(this%p(i),pm%p(i)%qs,pm%p(i)%ms)
+			call buildSpecies(this%dp(i),0.0_mp,0.0_mp)
 			allocate(vec(pm%p(i)%np,3))
 			vec = 0.0_mp
-			call setSpecies(this%p(i),pm%p(i)%np,vec,vec)
-			call setSpecies(this%dp(i),pm%p(i)%np,vec,vec)
+			call setSpecies(this%p(i),pm%p(i)%np,vec,vec,pm%p(i)%spwt)
+			call setSpecies(this%dp(i),pm%p(i)%np,vec,vec,pm%p(i)%spwt)
 			deallocate(vec)
 		end do
 		call buildMesh(this%m,pm%L,pm%ng)
@@ -119,14 +119,14 @@ contains
 		dV = PRODUCT(m%dx)
 		dxps = 0.0_mp
 		do i=1,this%np
-			dxps(i,1) = 1.0_mp/m%dx(1)*SUM( SUM( this%frac(i,:,:,:), 1)*rhos( this%g(i,2,1), this%g(i,:,2), this%g(i,:,3) )	&
+			dxps(i,1) = p%spwt(i)/m%dx(1)*SUM( SUM( this%frac(i,:,:,:), 1)*rhos( this%g(i,2,1), this%g(i,:,2), this%g(i,:,3) )	&
 											- SUM( this%frac(i,:,:,:), 1)*rhos( this%g(i,1,1), this%g(i,:,2), this%g(i,:,3) ) )
-			dxps(i,2) = 1.0_mp/m%dx(2)*SUM( SUM( this%frac(i,:,:,:), 2)*rhos( this%g(i,:,1), this%g(i,2,2), this%g(i,:,3) )	&
+			dxps(i,2) = p%spwt(i)/m%dx(2)*SUM( SUM( this%frac(i,:,:,:), 2)*rhos( this%g(i,:,1), this%g(i,2,2), this%g(i,:,3) )	&
 											- SUM( this%frac(i,:,:,:), 2)*rhos( this%g(i,:,1), this%g(i,1,2), this%g(i,:,3) ) )
-			dxps(i,3) = 1.0_mp/m%dx(3)*SUM( SUM( this%frac(i,:,:,:), 3)*rhos( this%g(i,:,1), this%g(i,:,2), this%g(i,2,3) )	&
+			dxps(i,3) = p%spwt(i)/m%dx(3)*SUM( SUM( this%frac(i,:,:,:), 3)*rhos( this%g(i,:,1), this%g(i,:,2), this%g(i,2,3) )	&
 											- SUM( this%frac(i,:,:,:), 3)*rhos( this%g(i,:,1), this%g(i,:,2), this%g(i,1,3) ) )
 		end do
-		dxps = - p%qs*p%spwt/dV*dxps
+		dxps = - p%qs/dV*dxps
 		xps = xps + dxps
 	end subroutine
 

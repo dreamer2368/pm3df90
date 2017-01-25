@@ -275,7 +275,7 @@ contains
 		real(mp) :: rhs(pm%ng(1),pm%ng(2),pm%ng(3))
 		integer :: kr,i
 		character(len=1000) :: istr, kstr, dir_temp
-		real(mp), allocatable :: xp0(:,:), vp0(:,:)
+		real(mp), allocatable :: xp0(:,:), vp0(:,:), spwt0(:)
 		interface
 			subroutine control(pm,k,str)
 				use modPM3D
@@ -290,19 +290,25 @@ contains
 		do i=1,pm%ns
 			allocate(xp0(r%np(i,kr+1),3))
 			allocate(vp0(r%np(i,kr+1),3))
+			allocate(spwt0(r%np(i,kr+1)))
 			write(istr,*) i
 			dir_temp='data/'//r%dir//'/xp/'//trim(adjustl(kstr))//'_'//trim(adjustl(istr))//'.bin'
 			open(unit=305,file=trim(dir_temp),form='unformatted',access='stream')
 			dir_temp='data/'//r%dir//'/vp/'//trim(adjustl(kstr))//'_'//trim(adjustl(istr))//'.bin'
 			open(unit=306,file=trim(dir_temp),form='unformatted',access='stream')
+			dir_temp='data/'//r%dir//'/spwt/'//trim(adjustl(kstr))//'_'//trim(adjustl(istr))//'.bin'
+			open(unit=307,file=trim(dir_temp),form='unformatted',access='stream')
 			read(305) xp0
 			read(306) vp0
+			read(307) spwt0
 			close(305)
 			close(306)
+			close(307)
 			call destroySpecies(pm%p(i))
-			call setSpecies(pm%p(i),r%np(i,kr+1),xp0,vp0)
+			call setSpecies(pm%p(i),r%np(i,kr+1),xp0,vp0,spwt0)
 			deallocate(xp0)
 			deallocate(vp0)
+			deallocate(spwt0)
 		end do
 		if( nk-kr*r%mod_r.eq.0 ) then
 			do i=1, pm%ns

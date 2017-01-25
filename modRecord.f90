@@ -22,16 +22,20 @@ contains
 					//trim(adjustl(nstr))//'.bin',status='replace',form='unformatted',access='stream')
 				open(unit=306,file='data/'//this%dir//'/vp/'//trim(adjustl(kstr))//'_'	&
 					//trim(adjustl(nstr))//'.bin',status='replace',form='unformatted',access='stream')
-!				open(unit=307,file='data/'//this%dir//'/Ep/'//trim(adjustl(kstr))//'_'	&
+				open(unit=307,file='data/'//this%dir//'/spwt/'//trim(adjustl(kstr))//'_'	&
+					//trim(adjustl(nstr))//'.bin',status='replace',form='unformatted',access='stream')
+!				open(unit=308,file='data/'//this%dir//'/Ep/'//trim(adjustl(kstr))//'_'	&
 !					//trim(adjustl(nstr))//'.bin',status='replace',form='unformatted',access='stream')
 				write(305) pm%p(ns)%xp
 				write(306) pm%p(ns)%vp
-!				write(307) pm%p(ns)%Ep
+				write(307) pm%p(ns)%spwt
+!				write(308) pm%p(ns)%Ep
 				close(305)
 				close(306)
 				close(307)
+!				close(308)
 				this%np(ns,kr+1) = pm%p(ns)%np
-				this%KE(ns,kr+1) = 0.5_mp*pm%p(ns)%ms*pm%p(ns)%spwt*SUM(pm%p(ns)%vp**2)
+				this%KE(ns,kr+1) = 0.5_mp*pm%p(ns)%ms*SUM(pm%p(ns)%spwt*SUM(pm%p(ns)%vp**2,2))
 			end do
 
 			this%phidata(:,:,:,kr+1) = pm%m%phi

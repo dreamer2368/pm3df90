@@ -14,9 +14,10 @@ contains
 		integer, intent(in) :: mod_input
 		real(mp) :: Q = 1.0_mp
 		real(mp), dimension(Nd*Nd*Nd,3) :: xp0, vp0
+		real(mp), dimension(Nd*Nd*Nd) :: spwt
 		real(mp), dimension(Ng(1),Ng(2),Ng(3)) :: rho_back
 		real(mp) :: xg(Ng(1)), yg(Ng(2)), zg(Ng(3))
-		real(mp) :: qs,ms,spwt
+		real(mp) :: qs,ms
 		real(mp) :: w
 		integer :: i,i1,i2,i3
 
@@ -25,7 +26,7 @@ contains
 		qs = -1.0_mp
 		ms = 1.0_mp
 		spwt = Ld*Ld*Ld/Nd/Nd/Nd														!rho_0 = 1
-		call buildSpecies(this%p(1),Nd*Nd*Nd,qs,ms,spwt)
+		call buildSpecies(this%p(1),qs,ms)
 
 		!Random seed
 		call init_random_seed
@@ -49,7 +50,7 @@ contains
 		vp0 = vp0*vT
 
 		!Set up species with initial distribution
-		call setSpecies(this%p(1),Nd*Nd*Nd,xp0,vp0)
+		call setSpecies(this%p(1),Nd*Nd*Nd,xp0,vp0,spwt)
 
 		!Grid space
 		xg =	(/ ( (i-0.5_mp)*Ld/Ng(1),i=1,Ng(1) ) /)
@@ -74,7 +75,7 @@ contains
 		type(PM3D), intent(inout) :: this
 		integer, intent(in) :: Nd(3)
 		real(mp), intent(in) :: v0
-		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs,ms,spwt
+		real(mp) :: xp0(PRODUCT(Nd),3), vp0(PRODUCT(Nd),3), qs,ms,spwt(PRODUCT(Nd))
 		real(mp), dimension(this%m%ng(1),this%m%ng(2),this%m%ng(3)) :: rho_back
 		real(mp) :: L(3),qe,me,mode
 		integer :: N,i,i1,i2,i3,pm(PRODUCT(Nd))
@@ -92,7 +93,7 @@ contains
 		spwt = 1.0_mp
 		rho_back = -qe*N/PRODUCT(L)
 
-		call buildSpecies(this%p(1),N,qs,ms,spwt)
+		call buildSpecies(this%p(1),qs,ms)
 		call setMesh(this%m,rho_back)
 
 		!spatial distribution initialize
@@ -126,7 +127,7 @@ contains
 		pm = 1 - 2*MOD(pm,2)
 		vp0(:,1) = vp0(:,1) + pm*v0
 
-		call setSpecies(this%p(1),N,xp0,vp0)
+		call setSpecies(this%p(1),N,xp0,vp0,spwt)
 	end subroutine
 
 end module

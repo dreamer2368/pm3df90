@@ -1,7 +1,7 @@
 ### Compilers & flags
 F90=mpifort
 
-FFTWLIBS=~/Programs/FFTW/lib/libfftw3.a
+FFTWLIBS=~/bin/FFTW/lib/libfftw3.a
 VECLIBSMACOSX=
 LAPACKLIB=-L/opt/local/lib/lapack-3.5.0 -llapack -lblas
 BLASLIB=/opt/local/lib/lapack-3.5.0/librefblas.a

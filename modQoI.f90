@@ -93,8 +93,8 @@ contains
 		!set zero velocity
 		vp0 = 0.0_mp
 
-		call buildSpecies(probe,3,1.0_mp,1.0_mp,1.0_mp)
-		call setSpecies(probe,3,xp0,vp0)
+		call buildSpecies(probe,1.0_mp,1.0_mp)
+		call setSpecies(probe,3,xp0,vp0,(/1.0_mp,1.0_mp,1.0_mp/))
 
 		!locate probes
 		call buildAssign(a,pm%m%ng)

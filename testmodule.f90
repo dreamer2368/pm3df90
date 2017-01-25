@@ -260,7 +260,7 @@ contains
 
 		real(mp) :: Tf = 1.0_mp, Ti = 1.0_mp
 		real(mp) :: dx(3)												!!grid size
-		real(mp) :: qe, qs, ms
+		real(mp) :: qe, qs, ms, spwt(Np)
 		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
 		real(mp), dimension(N(1),N(2),N(3)) :: rho_back, rhs, phi
 		real(mp), dimension(N(1),N(2),N(3),3) :: Es
@@ -292,12 +292,13 @@ contains
 		qe = -0.1_mp
 		qs = qe
 		ms = -qs
-        call buildSpecies(pm%p(1),Np,qs,ms,1.0_mp)
-		call setSpecies(pm%p(1),Np,xp,vp)
+		spwt = 1.0_mp
+        call buildSpecies(pm%p(1),qs,ms)
+		call setSpecies(pm%p(1),Np,xp,vp,spwt)
 		rho_back = -qe*pm%p(1)%np/PRODUCT(L)
 		call setMesh(pm%m,rho_back)
 
-        call buildSpecies(pm1%p(1),Np,qs,ms,1.0_mp)
+        call buildSpecies(pm1%p(1),qs,ms)
 		rho_back = -qe*pm1%p(1)%np/PRODUCT(L)
 		call setMesh(pm1%m,rho_back)
 
@@ -324,7 +325,7 @@ contains
 
 		real(mp) :: Tf = 0.2_mp, Ti = 0.2_mp
 		real(mp) :: dx(3)												!!grid size
-		real(mp) :: qe, qs, ms
+		real(mp) :: qe, qs, ms, spwt(Np)
 		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
 		real(mp), dimension(N(1),N(2),N(3)) :: rho_back, rhs, phi
 		real(mp), dimension(N(1),N(2),N(3),3) :: Es
@@ -367,8 +368,9 @@ contains
 		qe = -0.1_mp
 		qs = qe
 		ms = -qs
-        call buildSpecies(pm%p(1),Np,qs,ms,1.0_mp)
-		call setSpecies(pm%p(1),Np,xp,vp)
+		spwt = 1.0_mp
+        call buildSpecies(pm%p(1),qs,ms)
+		call setSpecies(pm%p(1),Np,xp,vp,spwt)
 		rho_back = -qe*pm%p(1)%np/PRODUCT(L)
 		call setMesh(pm%m,rho_back)
 
@@ -401,7 +403,7 @@ contains
         allocate(pm%A0(3))
         pm%A0 = A
         print *, pm%A0
-        call setSpecies(pm%p(1),Np,xp,vp)
+        call setSpecies(pm%p(1),Np,xp,vp,spwt)
 
         call forwardsweep(pm,testControl,QoI,J1)
 
@@ -426,7 +428,7 @@ contains
 
 		real(mp) :: Tf = 1.0_mp, Ti = 1.0_mp
 		real(mp) :: dx(3)												!!grid size
-		real(mp) :: qe, qs, ms
+		real(mp) :: qe, qs, ms,spwt(Np)
 		real(mp) :: L(3) = (/ 2.0_mp, 2.0_mp, 2.0_mp /)					!cubic size
 		real(mp), dimension(N(1),N(2),N(3)) :: rho_back, rhs, phi
 		real(mp), dimension(N(1),N(2),N(3),3) :: Es
@@ -457,8 +459,9 @@ contains
 		qe = -0.1_mp
 		qs = qe
 		ms = -qs
-        call buildSpecies(pm%p(1),Np,qs,ms,1.0_mp)
-		call setSpecies(pm%p(1),Np,xp,vp)
+		spwt = 1.0_mp
+        call buildSpecies(pm%p(1),qs,ms)
+		call setSpecies(pm%p(1),Np,xp,vp,spwt)
 		rho_back = -qe*pm%p(1)%np/PRODUCT(L)
 		call setMesh(pm%m,rho_back)
 
@@ -523,7 +526,7 @@ contains
 			dxp = 0.0_mp
 			dxp(k(1),k(2)) = xp(k(1),k(2))*fxp(i)
 			xp1 = xp + dxp
-			call setSpecies(pm%p(1),Np,xp1,vp)
+			call setSpecies(pm%p(1),Np,xp1,vp,spwt)
 
 			!particle move
             call move(pm%p(1),pm%dt)

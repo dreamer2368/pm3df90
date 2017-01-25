@@ -69,10 +69,10 @@ contains
 		this%nt = CEILING(Tf/this%dt)
 		this%dt = Tf/this%nt
 		this%ni = FLOOR(Ti/this%dt)+1
-      print *, 'Plasma is created'
-      print *, 'L = (',this%L,')'
-      print *, 'Ng = (',Ng,')'
-      print *, 'Ns = ',Ns,', A = ',this%A0
+		print *, 'Plasma is created'
+		print *, 'L = (',this%L,')'
+		print *, 'Ng = (',Ng,')'
+		print *, 'Ns = ',Ns,', A = ',this%A0
 		print *, 'Ni = ',this%ni,', Nt = ',this%nt,', dt = ',this%dt
 
 		this%eps0 = 1.0_mp
@@ -145,10 +145,12 @@ contains
 
 		call system('mkdir -p data/'//this%dir//'/xp')
 		call system('mkdir -p data/'//this%dir//'/vp')
+		call system('mkdir -p data/'//this%dir//'/spwt')
 !		call system('mkdir -p data/'//this%dir//'/Ep')
 
 		call system('rm data/'//this%dir//'/xp/*.*')
 		call system('rm data/'//this%dir//'/vp/*.*')
+		call system('rm data/'//this%dir//'/spwt/*.*')
 !		call system('rm data/'//this%dir//'/Ep/*.*')
 	end subroutine
 

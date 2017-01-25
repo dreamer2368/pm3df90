@@ -114,7 +114,7 @@ contains
 		do ip=1,size(p)
 			do i=1,p(ip)%np
 				g = this(ip)%g(i,:,:)
-				m%rho( g(:,1), g(:,2), g(:,3) ) = m%rho( g(:,1), g(:,2), g(:,3) ) + p(ip)%qs*p(ip)%spwt/dV*this(ip)%frac(i,:,:,:)
+				m%rho( g(:,1), g(:,2), g(:,3) ) = m%rho( g(:,1), g(:,2), g(:,3) ) + p(ip)%qs*p(ip)%spwt(i)/dV*this(ip)%frac(i,:,:,:)
 			end do
 		end do
 		m%rho = m%rho + m%rho_back
