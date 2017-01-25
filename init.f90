@@ -6,48 +6,29 @@ module init
 
 contains
 
-	function randn(N) result(x)
-		integer, intent(in) :: N
-		real(mp) :: x(N)
-		integer :: i
-
-		do i = 1,N
-!			x(i) = SQRT(-2.0_mp*LOG(RAND()))*COS(2.0_mp*pi*RAND())
-			x(i) = random_normal()
-		end do
-	end function
-
-	subroutine buildDebye(this,Tf,Ld,Nd,Ng,vT,mod_input)
+	subroutine buildDebye(this,Tf,Ld,Nd,Ng,vT,dir_input,mod_input)
 		type(PM3D), intent(inout) :: this
 		real(mp), intent(in) :: Tf, Ld, vT
 		integer, intent(in) :: Nd,Ng(3)
-		integer, intent(in), optional :: mod_input
+      character(len=*), intent(in) :: dir_input
+		integer, intent(in) :: mod_input
 		real(mp) :: Q = 1.0_mp
 		real(mp), dimension(Nd*Nd*Nd,3) :: xp0, vp0
 		real(mp), dimension(Ng(1),Ng(2),Ng(3)) :: rho_back
 		real(mp) :: xg(Ng(1)), yg(Ng(2)), zg(Ng(3))
 		real(mp) :: qs,ms,spwt
 		real(mp) :: w
-		integer :: nseed,i,i1,i2,i3
-		integer, allocatable :: seed(:)
+		integer :: i,i1,i2,i3
 
 		!Parameter setup
-		if( present(mod_input) ) then
-			call buildPM3D(this,Tf,1.0_mp,Ng,1,dt=0.1_mp,L=(/Ld,Ld,Ld/),dir='debye',mod_input=mod_input)
-		else
-			call buildPM3D(this,Tf,1.0_mp,Ng,1,dt=0.1_mp,L=(/Ld,Ld,Ld/),dir='debye')
-		end if
+		call buildPM3D(this,Tf,1.0_mp,Ng,1,dt=0.1_mp,L=(/Ld,Ld,Ld/),dir=dir_input,mod_input=mod_input)
 		qs = -1.0_mp
 		ms = 1.0_mp
 		spwt = Ld*Ld*Ld/Nd/Nd/Nd														!rho_0 = 1
 		call buildSpecies(this%p(1),Nd*Nd*Nd,qs,ms,spwt)
 
 		!Random seed
-		call RANDOM_SEED(size=nseed)
-		allocate(seed(nseed))
-		seed = 127*(/ ( i, i=1,nseed ) /)
-		call RANDOM_SEED(put=seed)
-		deallocate(seed)
+		call init_random_seed
 
 		!spatial distribution initialize
 		do i3 = 1,Nd
@@ -64,9 +45,7 @@ contains
 !		xp0 = xp0*Ld
 
 		!Initial velocity distribution: Maxwell distribution ~ N(0,0.1^2)
-		do i=1,3
-			vp0(:,i) = randn(Nd*Nd*Nd)
-		end do
+		vp0 = randn(Nd*Nd*Nd,3)
 		vp0 = vp0*vT
 
 		!Set up species with initial distribution

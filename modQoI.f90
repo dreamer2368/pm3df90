@@ -112,4 +112,24 @@ contains
 		call destroyAssign(a)
 	end subroutine
 
+!===================Debye_length=============================
+
+   subroutine Debye_length(pm,k,J)
+      type(PM3D), intent(in) :: pm
+      integer, intent(in) :: k
+      real(mp), intent(inout) :: J
+      real(mp), dimension(pm%ng(1),pm%ng(2),pm%ng(3)) :: Xg2      !squared distance from center
+      integer :: i1,i2,i3
+      
+      do i3 = 1,pm%ng(3)
+         do i2 = 1,pm%ng(2)
+            do i1 = 1,pm%ng(1)
+               Xg2(i1,i2,i3) =  SUM( ((/ (i1-0.5_mp),(i2-0.5_mp),(i3-0.5_mp) /)*pm%L/pm%ng - 0.5_mp*pm%L)**2 )
+            end do
+         end do
+      end do
+
+		J = J + PRODUCT(pm%m%dx)/pm%nt*SUM( Xg2*pm%m%rho )
+   end subroutine
+
 end module
